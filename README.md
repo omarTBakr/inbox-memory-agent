@@ -1,4 +1,18 @@
-# Email Agent Assistant with Long-Term Memory (LangGraph)
+<p align="center">
+  <img src="docs/assets/icon.svg" alt="Inbox Memory Agent icon" width="128" height="128">
+</p>
+
+<h1 align="center">Inbox Memory Agent</h1>
+
+<p align="center">
+  An email assistant with long-term memory, built on LangGraph
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/omarrbakr/">LinkedIn</a> ·
+  <a href="mailto:bakro0298@gmail.com">bakro0298@gmail.com</a> ·
+  <a href="https://omartbakr.github.io/">omartbakr.github.io</a>
+</p>
 
 An email assistant built up in stages, ending as a Gmail-connected worker:
 
