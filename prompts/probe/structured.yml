@@ -1,0 +1,11 @@
+name: probe/structured
+type: text
+description: Model compatibility check - must come back as the triage router's JSON structure.
+variables: []
+config: {}
+template: |
+  Classify this email as ignore, notify or respond, with a one-sentence reason.
+
+  From: Alice <alice@example.com>
+  Subject: Can you review my pull request today?
+  Hi, could you take a look at PR #12 before 5pm? Thanks!

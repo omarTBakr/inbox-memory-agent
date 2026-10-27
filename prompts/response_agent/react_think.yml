@@ -1,0 +1,31 @@
+name: response_agent/react_think
+type: text
+description: ReAct "think" step - decide the next action (use a tool, draft the reply, or escalate).
+variables: [rules, email, context, tools, scratchpad, step, max_steps]
+config: {}
+template: |
+  {{rules}}
+
+  < Email to answer >
+  {{email}}
+  </ Email to answer >
+
+  < Known context (from memory and profile) >
+  {{context}}
+  </ Known context >
+
+  < Tools you can use now >
+  {{tools}}
+  (Sending the reply is not a tool here: choose "draft" when you are ready.)
+  </ Tools >
+
+  < Your steps so far (thought, action, observation) >
+  {{scratchpad}}
+  </ Your steps so far >
+
+  This is step {{step}} of at most {{max_steps}}. Think about what you know and what is still missing,
+  then choose exactly one next action:
+  - "use_tool": call one tool from the list, with its arguments in tool_input.
+  - "draft": you have everything needed to write the reply.
+  - "escalate": the email is in an escalation topic, or needed information cannot be found.
+  If a review found issues (shown in your steps), fix them before drafting again.

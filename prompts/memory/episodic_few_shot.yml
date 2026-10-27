@@ -1,0 +1,14 @@
+name: memory/episodic_few_shot
+type: text
+description: Formats one past, labelled email as a few-shot example for triage (episodic memory).
+variables: [subject, from_email, to_email, content, result]
+config: {}
+template: |
+  Email Subject: {{subject}}
+  Email From: {{from_email}}
+  Email To: {{to_email}}
+  Email Content:
+  ```
+  {{content}}
+  ```
+  > Triage Result: {{result}}

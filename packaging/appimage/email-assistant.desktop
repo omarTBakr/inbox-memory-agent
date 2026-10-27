@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Email Assistant
+Comment=Email agent with long-term memory (LangGraph)
+Exec=email-assistant
+Icon=email-assistant
+Terminal=true
+Categories=Office;Email;

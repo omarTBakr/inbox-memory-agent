@@ -1,0 +1,179 @@
+# Setup guides: shown in the UI ("What should I do?" on each step) and rendered to
+# docs/SETUP_GUIDE.md by `make docs`. Edit here only.
+# Inline formatting: `code` and [link text](https://url).
+# Each step: title + sections; each section: title, steps (numbered), optional notes (bullets).
+
+intro: >-
+  The setup wizard (http://localhost:5173/setup) walks through these steps in order. Each step saves
+  on its own, so you can come back later; Settings shows the same forms afterwards.
+
+steps:
+  health:
+    title: System
+    sections:
+      - title: Start the services
+        steps:
+          - Start the containers with `make up` (Postgres, Langfuse, MLflow).
+          - Make sure Ollama is running on this machine if you use local models (`ollama serve`, usually already running).
+          - Press **Check again**; every row should be green.
+          - First time only, press **Initialise database** to create the tables.
+        notes:
+          - A red row shows the error; `make logs S=<service>` shows that container's logs.
+
+  profile:
+    title: Profile
+    sections:
+      - title: Tell the assistant who you are
+        steps:
+          - Fill in every field marked with a red `*`; fields still showing `TODO` are flagged.
+          - Pick your time zone and working days; meeting length and buffer drive the calendar suggestions.
+          - Write triage rules in plain language (what to ignore, what to tell you about, what to answer).
+          - List the topics the assistant must never decide for you under **Escalate when** (approvals, money, legal...); it sends a holding reply and flags those emails.
+          - Press **Save**.
+        notes:
+          - Triage rules and agent instructions are only the starting point; feedback (`make teach`) refines them later.
+
+  notifications:
+    title: Notifications
+    sections:
+      - title: Telegram bot (recommended, your phone notifies you)
+        steps:
+          - In Telegram open [@BotFather](https://t.me/BotFather), send `/newbot`, choose a name and a username ending in `bot`.
+          - Copy the token BotFather sends (looks like `123456789:AA...`).
+          - Open your new bot (link in BotFather's reply) and press **Start**; a bot can only write to people who started it.
+          - Here, choose channel `telegram` and paste the token into **Telegram bot token**.
+          - Press **Detect Telegram chat id** and pick your chat; the chat id fills in.
+          - Turn **Dry run** off if notifications should really be sent, then press **Save**.
+          - Press **Test telegram**; you should receive a test message from your bot.
+        notes:
+          - "Detect finds nothing? Send the bot any message and detect again (Telegram keeps updates for 24 hours)."
+          - If the token was ever shared (e.g. pasted in a chat), regenerate it in BotFather with `/revoke` and paste the new one.
+      - title: Telegram Saved Messages (optional private log, no phone alert)
+        steps:
+          - Go to [my.telegram.org](https://my.telegram.org), log in with your phone, open **API development tools** and create an app (any name).
+          - Here, choose channel `telegram_self` and fill in **api_id**, **api_hash** and your phone with `+`.
+          - Press **Send login code**; Telegram sends a code to your Telegram app.
+          - Enter the code (and your two-step verification password if you use one) and press **Log in**.
+          - Press **Save**, then **Test telegram (self)**; the message appears in Saved Messages.
+        notes:
+          - This login gives the app access to your Telegram account; it is stored encrypted. Log out here to remove it.
+
+  gmail:
+    title: Gmail
+    sections:
+      - title: 1 · Create a Google Cloud project and enable the Gmail API
+        steps:
+          - Open [Google Cloud Console](https://console.cloud.google.com/) and create a project (or pick an existing one).
+          - Open [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) and press **Enable**.
+          - If you will use Calendar, also enable the [Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com).
+      - title: 2 · Configure the consent screen and add yourself as a test user
+        steps:
+          - Open [Google Auth Platform](https://console.cloud.google.com/auth/overview) (older consoles call it **OAuth consent screen**) and press **Get started**.
+          - Give the app a name and your email, choose audience **External**, and finish.
+          - Under [Audience](https://console.cloud.google.com/auth/audience), add the Gmail address you will connect to **Test users**.
+        notes:
+          - While the app is in "Testing", only test users can sign in, and Google may ask you to reconnect every 7 days.
+      - title: 3 · Create the OAuth client
+        steps:
+          - Open [Clients / Credentials](https://console.cloud.google.com/auth/clients) and press **Create client**.
+          - "For the **Connect Google** button in this UI: choose **Web application** and add `http://localhost:8000/api/gmail/oauth/callback` under **Authorized redirect URIs**."
+          - "Alternatively choose **Desktop app** (no redirect URI to enter) and connect from the terminal with `make gmail-auth`."
+          - Press **Create**, then **Download JSON**.
+        notes:
+          - The redirect URI must match exactly, including `http`, port `8000` and the path; it is shown above on this page.
+      - title: 4 · Connect your account
+        steps:
+          - Press **Upload client JSON** and choose the downloaded file.
+          - Press **Connect Google** (Web client) or run `make gmail-auth` in a terminal (Desktop client).
+          - "Google warns \"Google hasn't verified this app\": press **Advanced → Go to (your app)**; it is your own app."
+          - Allow the Gmail permission; you return here with "Google account connected".
+          - Press **Test connection**; it shows your address and unread count.
+          - Choose the **Approval mode** (start with `draft_only`) and press **Save**.
+      - title: 5 · Handle new mail automatically
+        steps:
+          - Under **Watch for new mail**, switch on **Handle new emails automatically**.
+          - Send yourself a test email; within the check interval (`Poll seconds`) it appears in the list with its decision, and a Telegram message arrives if notifications are on.
+          - Press **Check now** to check immediately instead of waiting.
+        notes:
+          - Only emails that arrive after you switch it on are handled, each exactly once (also after a restart).
+          - It runs while the app runs. `make worker` runs the same watcher without the UI; only one of them works at a time.
+          - Nothing is changed in Gmail; what happens to replies depends on the **Approval mode**.
+      - title: 6 · Include the Spam folder (optional)
+        steps:
+          - Turn on **Include spam** in the form above and press **Save**; `Spam query` chooses which Spam emails are checked (default unread).
+          - A Spam email the assistant thinks is genuine arrives on Telegram marked "⚠️ From your Spam folder"; ignored ones appear in the digest marked "(spam)".
+          - If it is genuine, tap **📥 Not spam**; the email moves to your Inbox and similar emails will be reported next time.
+        notes:
+          - Spam emails are never answered, whatever the triage decides; Spam is often phishing.
+          - "**📥 Not spam** is the only change the app ever makes in Gmail, and only when you tap it."
+      - title: Troubleshooting
+        steps:
+          - "**Watcher shows \"Another watcher is handling this mailbox\"**: `make worker` or a second copy of the app is running; stop one."
+          - "**Error 400: redirect_uri_mismatch**: your client is a Desktop app, or the Web client lacks the exact redirect URI. Add it to a Web client, or use `make gmail-auth` with the Desktop client."
+          - "**Error 403: access_denied** / \"has not completed the Google verification process\": add your address under **Audience → Test users**."
+          - "**Test connection fails with \"Gmail API has not been used in project\"**: enable the Gmail API (section 1) and retry after a minute."
+          - "**invalid_grant / token expired**: press **Reconnect Google** (test-mode tokens expire after 7 days)."
+
+  calendar:
+    title: Calendar
+    sections:
+      - title: Use Google Calendar (optional)
+        steps:
+          - Enable the [Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) in the same Google Cloud project.
+          - Turn **Enabled** on here and press **Save**.
+          - Go back to the Gmail step and press **Reconnect Google** so the calendar permission is granted.
+        notes:
+          - Until calendar tools are built, availability is simulated from your working hours.
+
+  model:
+    title: Model
+    sections:
+      - title: Local model (Ollama)
+        steps:
+          - Install [Ollama](https://ollama.com/download) and pull a model with tool calling, e.g. `ollama pull gemma4:e4b`.
+          - Choose provider **Local (Ollama)**; installed models are listed automatically with their capabilities.
+          - Pick a model, press **Test this model**; both checks must pass. Then press **Save**.
+        notes:
+          - If the structured-output check fails, try another model or switch **Reasoning** on/off.
+      - title: API model
+        steps:
+          - "Create an API key: [Anthropic](https://console.anthropic.com/settings/keys), [OpenAI](https://platform.openai.com/api-keys) or [Google AI Studio](https://aistudio.google.com/apikey); for an OpenAI-compatible server use its URL and key."
+          - Choose the provider, paste the key into **Api key**, press **Load available models** and pick one.
+          - Press **Test this model**, then **Save**.
+        notes:
+          - Email content is sent to the provider when an API model is used.
+
+  embeddings:
+    title: Embeddings
+    sections:
+      - title: Choose the embedding model
+        steps:
+          - "Local: `ollama pull nomic-embed-text`, choose provider **Local (Ollama)** and the model."
+          - Press **Test embeddings**; if the dimensions differ, press **Use N dimensions**. Then **Save**.
+        notes:
+          - Memories are stored with these vectors; changing model or dimensions later means existing memories must be re-indexed.
+
+  review:
+    title: Review
+    sections:
+      - title: Try it out
+        steps:
+          - Press **Dry run on sample emails**; triage accuracy should be close to 100%.
+          - With Gmail connected, press **Run on my latest Gmail emails** (read-only; nothing is marked read or sent).
+          - Check Telegram for the summaries if notifications are on.
+        notes:
+          - Runs are tracked in [MLflow](http://localhost:5000) and traced in [Langfuse](http://localhost:3000); `docs/LANGFUSE.md` lists the metrics to watch.
+      - title: Watch how it's doing
+        steps:
+          - Open **Visualizations** in the side menu for the headline numbers (feedback, triage mix, cost, latency, tokens, warnings).
+          - Below them, the full Langfuse UI is embedded; log in once with the Langfuse account from `.env` if it asks.
+          - "`docs/LANGFUSE.md` explains every number and what to do when one drifts."
+      - title: Give feedback (teaches the assistant)
+        steps:
+          - "Under each Telegram notification: `ignore · notify · respond` with ✓ on the current decision, then 👍 · 👎 · ✍️ feedback. The daily digest has one such row per ignored email."
+          - "Tap another label to correct the decision (similar emails will follow it); tap the ticked label or 👍 to confirm it."
+          - "✍️ feedback: reply to the bot with what should change; it rewrites the assistant's instructions."
+          - The **Feedback** page shows every handled email, its rating and which memory each feedback changed; you can rate there too.
+        notes:
+          - Feedback is only accepted from your configured chat id.
+          - Set the digest time and turn it on/off in Notifications; **Send ignored digest now** on the Feedback page sends it immediately.

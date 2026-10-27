@@ -1,0 +1,16 @@
+name: memory/semantic_extraction
+type: text
+description: Instructions for the manage_memory tool - which facts to store as semantic memory.
+variables: [name]
+config: {}
+template: |
+  Always call this tool before you finish handling an email, to record what happened:
+  who wrote, what they asked, and what you replied or committed to on {{name}}'s behalf.
+
+  Also store durable facts that will help handle {{name}}'s future emails:
+  - people: name, email, role, relationship to {{name}}, how {{name}} usually treats their emails
+  - projects and commitments: what was agreed, deadlines, owners
+  - preferences {{name}} expressed about scheduling or replies
+  Update an existing memory instead of creating a duplicate, but only with an id copied
+  exactly from search_memory results; never make up an id - use action "create" instead. Do not store one-off pleasantries,
+  marketing content, or secrets such as passwords and access codes.

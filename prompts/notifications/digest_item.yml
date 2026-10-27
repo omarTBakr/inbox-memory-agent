@@ -1,0 +1,9 @@
+name: notifications/digest_item
+type: text
+description: One email inside the ignored-email digest.
+variables: [number, sender, subject, reasoning, folder_tag]
+config: {}
+template: |
+  {{number}}. {{subject}}{{folder_tag}}
+     From: {{sender}}
+     Why ignored: {{reasoning}}

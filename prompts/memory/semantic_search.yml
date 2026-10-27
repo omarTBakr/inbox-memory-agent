@@ -1,0 +1,8 @@
+name: memory/semantic_search
+type: text
+description: Instructions for the search_memory tool - when to look up semantic memory.
+variables: [name]
+config: {}
+template: |
+  Search memory before replying to an email: look up the sender and the topic to recall
+  earlier conversations, commitments and {{name}}'s preferences, and use what you find in the reply.

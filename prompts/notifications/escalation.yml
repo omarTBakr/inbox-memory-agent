@@ -1,0 +1,9 @@
+name: notifications/escalation
+type: text
+description: Block in a "responded" notification when the agent escalated instead of answering.
+variables: [reason]
+config: {}
+template: |
+
+  🙋 Needs your decision: {{reason}}
+  (A holding reply was sent; nothing was decided for you.)

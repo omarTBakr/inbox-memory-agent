@@ -1,0 +1,12 @@
+name: triage/user
+type: text
+description: The email to classify, passed as the user message to the triage model.
+variables: [author, to, subject, email_thread, folder_note]
+config: {}
+template: |
+  Please determine how to handle the below email thread:
+  {{folder_note}}
+  From: {{author}}
+  To: {{to}}
+  Subject: {{subject}}
+  {{email_thread}}

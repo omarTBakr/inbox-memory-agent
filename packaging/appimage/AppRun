@@ -1,0 +1,5 @@
+#!/bin/sh
+# AppImage entry: run the launcher with the bundled Python, isolated from the host's Python.
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="${APPDIR:-$HERE}"
+exec "$HERE/opt/python/bin/python3" -I "$HERE/opt/email-assistant/launcher.py" "$@"

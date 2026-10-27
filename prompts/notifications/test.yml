@@ -1,0 +1,6 @@
+name: notifications/test
+type: text
+description: Message sent by `make notify-test` to check the channels.
+variables: [name]
+config: {}
+template: "✅ Test notification: {{name}}'s email assistant can reach you here."

@@ -1,0 +1,6 @@
+name: notifications/feedback_why
+type: text
+description: Bot asks for free-text feedback on a reply; the user answers by replying to this message.
+variables: [subject]
+config: {}
+template: "Reply to this message with what the assistant should do differently for “{{subject}}”."

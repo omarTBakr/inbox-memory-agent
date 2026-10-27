@@ -1,0 +1,72 @@
+# Who the assistant works for. Loaded by email_assistant/profile.py (USER_PROFILE_PATH).
+# Fill in every TODO; `make profile` warns about the ones left.
+
+user:
+  # Short id for memory namespaces: letters, digits, _ or - (no dots)
+  id: omar
+  name: Omar
+  full_name: TODO
+  email: example@gmail.com
+  user_profile_background: >-
+    TODO: one or two sentences on your role and context,
+    e.g. "AI engineer building LLM agents, working with a small remote team."
+  role: TODO
+  organization: TODO
+  # IANA name, e.g. Africa/Cairo – used for scheduling
+  timezone: TODO
+  working_hours:
+    start: "09:00"
+    end: "17:00"
+    days: [Sun, Mon, Tue, Wed, Thu]
+  languages: [en]
+
+# How drafts written on your behalf should sound.
+writing_style:
+  tone: professional, friendly, concise
+  signature: |
+    Best regards,
+    Omar
+  # e.g. "no exclamation marks", "bullet points for action items"
+  preferences: []
+
+# Who matters – drives triage priority and seeds semantic memory.
+# Entries: {name: ..., email: ..., relation: ...}
+contacts:
+  vip: []
+  team: []
+  blocked: []
+
+# Initial triage rules; procedural memory (stage 04) rewrites these from feedback.
+triage_rules:
+  ignore: Marketing newsletters, spam emails, mass company announcements
+  notify: Team member out sick, build system notifications, project status updates
+  respond: Direct questions from team members, meeting requests, critical bug reports
+
+# Initial instructions for the response agent; also updated by procedural memory.
+agent_instructions: >-
+  Use these tools when appropriate to help manage Omar's tasks efficiently.
+
+# Where the assistant pushes summaries of what it did (graph node notify_user, stage 04).
+# API tokens live in .env; NOTIFY_DRY_RUN=true prints instead of sending.
+notifications:
+  # telegram and/or telegram_self; empty until set up in the UI (Setup > Notifications)
+  channels: []
+  # Which triage outcomes trigger a push: respond (what was replied, to whom), notify, ignore
+  notify_on: [respond, notify]
+  # Telegram bots cannot message phone numbers: open a chat with your bot, send /start,
+  # then use "Detect" in the UI (or `make telegram-chat-id`) and paste the id here
+  telegram_chat_id: ""
+
+# The reply agent never decides these itself: it sends a short holding reply and flags the
+# email to you ("Needs your decision") instead.
+escalate_when:
+  - approving or rejecting anything (budgets, invoices, purchases, requests for a decision)
+  - money, payments, prices or contracts
+  - legal, HR or confidential matters
+  - information you could not find in the email, memory or tools
+
+scheduling:
+  default_meeting_minutes: 30
+  buffer_minutes: 10
+  # e.g. ["Fri all day", "Mon before 11:00"]
+  no_meetings: []

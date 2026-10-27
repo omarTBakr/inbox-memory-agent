@@ -1,0 +1,27 @@
+name: response_agent/react_draft
+type: text
+description: ReAct "draft" step - write the reply using only facts gathered so far, citing their sources.
+variables: [rules, email, context, scratchpad]
+config: {}
+template: |
+  {{rules}}
+
+  < Email to answer >
+  {{email}}
+  </ Email to answer >
+
+  < Known context >
+  {{context}}
+  </ Known context >
+
+  < What you found (thought, action, observation) >
+  {{scratchpad}}
+  </ What you found >
+
+  Write the reply now.
+  - to: the sender's address (or another address that appears in the email, if the email asks for it).
+  - language: ISO 639-1 code of the language you write in.
+  - body: only the email text the recipient should read. Never mention sources, "known context",
+    tools or observations in the body.
+  - facts: every fact the reply states, each with its source (email, memory or tool).
+  - commitments: anything the reply promises; each must be backed by a tool result or be a promise to get back.

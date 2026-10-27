@@ -1,0 +1,12 @@
+# Model prices synced into Langfuse (`make langfuse-models`) so every generation gets a cost.
+# Langfuse already knows OpenAI, Anthropic and Gemini prices; add entries here for models it
+# doesn't know (local Ollama models) or to override. Prices are USD per 1M tokens.
+# match_pattern is a regex on the model name Langfuse records (e.g. "gemma4:e4b").
+# Costs apply to generations ingested after a price is set.
+models:
+  - model_name: ollama-local
+    # Ollama names are "name:tag"; API model names never contain ":"
+    match_pattern: "(?i)^[a-z0-9._/-]+:[a-z0-9._-]+$"
+    # Set to your estimated GPU/electricity cost to compare with API models; 0 = free
+    input_per_million: 0.0
+    output_per_million: 0.0

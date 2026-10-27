@@ -1,0 +1,95 @@
+# Choices offered by the UI (dropdowns / "pick a preset or type your own").
+# Served by GET /api/options/<name>; edit here to change what the UI suggests.
+
+weekdays: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+
+languages:
+  - {value: en, label: English}
+  - {value: ar, label: Arabic}
+  - {value: fr, label: French}
+  - {value: de, label: German}
+  - {value: es, label: Spanish}
+  - {value: it, label: Italian}
+  - {value: pt, label: Portuguese}
+  - {value: tr, label: Turkish}
+  - {value: ru, label: Russian}
+  - {value: zh, label: Chinese}
+  - {value: ja, label: Japanese}
+
+tones:
+  - professional, friendly, concise
+  - formal and detailed
+  - casual and brief
+  - warm and supportive
+  - direct, no small talk
+
+meeting_minutes: [15, 30, 45, 60, 90]
+buffer_minutes: [0, 5, 10, 15, 30]
+
+# Visualizations tab: periods offered, and Langfuse pages ({project} = LANGFUSE_INIT_PROJECT_ID)
+visualization_periods: [7, 30, 90]
+langfuse_pages:
+  traces: /project/{project}/traces
+  scores: /project/{project}/scores
+  prompts: /project/{project}/prompts
+  dashboards: /project/{project}/dashboards
+  sessions: /project/{project}/sessions
+
+# Telegram feedback buttons under every notification:
+#   [ ✓ notify ] [ ignore ] [ respond ]   (current decision marked with `selected`)
+#   [ 👍 ] [ 👎 ] [ ✍️ feedback ]          (`given` appended once rated)
+telegram_buttons:
+  selected: "✓ "
+  given: " ✓"
+  label_ignore: "ignore"
+  label_notify: "notify"
+  label_respond: "respond"
+  up: "👍"
+  down: "👎"
+  why: "✍️ feedback"
+  why_short: "✍️"
+  not_spam: "📥 Not spam"
+  not_spam_done: "✓ in Inbox"
+
+# Model providers. base_url: default API root; models_path: endpoint listing models;
+# structured_output: default with_structured_output method for that provider.
+providers:
+  ollama:
+    label: Local (Ollama)
+    kind: local
+    api_key: false
+    base_url: http://localhost:11434
+    structured_output: json_schema
+    embeddings: true
+  anthropic:
+    label: Anthropic (Claude)
+    kind: api
+    api_key: true
+    base_url: https://api.anthropic.com
+    models_path: /v1/models
+    structured_output: function_calling
+    embeddings: false
+  openai:
+    label: OpenAI
+    kind: api
+    api_key: true
+    base_url: https://api.openai.com/v1
+    models_path: /models
+    structured_output: json_schema
+    embeddings: true
+  openai_compatible:
+    label: OpenAI-compatible server
+    kind: api
+    api_key: true
+    base_url: ""
+    models_path: /models
+    structured_output: function_calling
+    embeddings: true
+  google_genai:
+    label: Google Gemini
+    kind: api
+    api_key: true
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    models_path: /models
+    structured_output: json_schema
+    embeddings: true

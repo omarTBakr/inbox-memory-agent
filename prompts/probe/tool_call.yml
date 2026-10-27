@@ -1,0 +1,6 @@
+name: probe/tool_call
+type: text
+description: Model compatibility check - the model must call the given calendar tool.
+variables: []
+config: {}
+template: "Check my calendar availability for Tuesday using the tool."

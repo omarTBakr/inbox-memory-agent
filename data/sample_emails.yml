@@ -1,0 +1,105 @@
+# Offline test emails for running the stages. `expected` is the triage label we want.
+emails:
+  - id: api-docs-question
+    expected: respond
+    from: Alice Smith <alice.smith@company.com>
+    to: Omar <example@gmail.com>
+    subject: Quick question about API documentation
+    body: |
+      Hi Omar,
+
+      I was reviewing the API documentation for the new authentication service and noticed
+      a few endpoints seem to be missing from the specs. Could you help clarify if this was
+      intentional or if we should update the docs?
+
+      Specifically, I'm looking at:
+      - /auth/refresh
+      - /auth/validate
+
+      Thanks!
+      Alice
+
+  # Only answerable well if the assistant remembers the email above (semantic memory, stage 02+)
+  - id: api-docs-followup
+    expected: respond
+    from: Alice Smith <alice.smith@company.com>
+    to: Omar <example@gmail.com>
+    subject: "Re: Quick question about API documentation"
+    body: |
+      Hi Omar,
+
+      Just following up on my earlier question - any update on those two endpoints?
+
+      Thanks,
+      Alice
+
+  - id: meeting-request
+    expected: respond
+    from: Tom Jones <tom.jones@company.com>
+    to: Omar <example@gmail.com>
+    subject: Sync on the memory design next week?
+    body: |
+      Hey Omar,
+
+      Could we find 45 minutes next Tuesday or Wednesday to go over the long-term memory
+      design? Happy to adapt to your schedule.
+
+      Tom
+
+  - id: build-failure
+    expected: notify
+    from: CI Bot <ci@company.com>
+    to: Omar <example@gmail.com>
+    subject: "[CI] Nightly build failed on main"
+    body: |
+      The nightly build #1842 failed on branch main.
+      Failing job: integration-tests (3 failures). See the CI dashboard for details.
+
+  - id: newsletter
+    expected: ignore
+    from: Deals Weekly <news@deals-weekly.example>
+    to: Omar <example@gmail.com>
+    subject: 50% off all cloud credits this weekend only!
+    body: |
+      Don't miss our biggest sale of the year. Click here to claim your discount.
+      Unsubscribe at any time.
+
+  # Pair for episodic memory (stage 03+): the right label is a personal preference the
+  # written rules don't cover. Give feedback on the first, check the second follows it.
+  - id: github-digest-1
+    expected: notify
+    from: GitHub <noreply@github.com>
+    to: Omar <example@gmail.com>
+    subject: "[company/email-agent] 3 pull requests are waiting for your review"
+    body: |
+      You have 3 pull requests waiting for your review:
+      - #128 Add Postgres checkpointer
+      - #131 Fix triage prompt variables
+      - #133 Bump langgraph to 1.2
+      Manage your notification settings on GitHub.
+
+  - id: github-digest-2
+    expected: notify
+    from: GitHub <noreply@github.com>
+    to: Omar <example@gmail.com>
+    subject: "[company/email-agent] 2 pull requests are waiting for your review"
+    body: |
+      You have 2 pull requests waiting for your review:
+      - #140 Episodic memory store
+      - #142 Gmail worker skeleton
+      Manage your notification settings on GitHub.
+
+  # The reply agent must not decide money matters: holding reply + "Needs your decision" (stage 04)
+  - id: budget-approval
+    expected: respond
+    from: Sara Malik <sara.malik@company.com>
+    to: Omar <example@gmail.com>
+    subject: Approval needed - Acme Cloud invoice
+    body: |
+      Hi Omar,
+
+      Finance needs your approval for the Acme Cloud invoice of $4,800 for Q4 before Friday.
+      Can you confirm we can pay it?
+
+      Thanks,
+      Sara

@@ -1,0 +1,13 @@
+name: response_agent/user
+type: text
+description: The message handing an email that needs a reply to the response agent.
+variables: [author, to, subject, email_thread]
+config: {}
+template: |
+  Respond to this email.
+
+  From: {{author}}
+  To: {{to}}
+  Subject: {{subject}}
+
+  {{email_thread}}

@@ -1,0 +1,14 @@
+name: email-assistant
+
+# Run with --env-manager local (the project virtualenv); see `make stage1` / `make worker`.
+entry_points:
+  stage1:
+    command: "python stages/01_baseline.py"
+  stage2:
+    command: "python stages/02_semantic_memory.py"
+  stage3:
+    command: "python stages/03_semantic_episodic.py"
+  stage4:
+    command: "python stages/04_semantic_episodic_procedural.py"
+  worker:
+    command: "python -m email_assistant.gmail.worker"

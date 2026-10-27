@@ -1,0 +1,6 @@
+name: triage/spam_guard
+type: text
+description: Appended to the triage reasoning when a Spam email was classified 'respond' and downgraded to 'notify'.
+variables: []
+config: {}
+template: "(Found in Spam: not answered automatically; check it and reply yourself if it is genuine.)"

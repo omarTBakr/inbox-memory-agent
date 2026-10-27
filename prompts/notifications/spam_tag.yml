@@ -1,0 +1,6 @@
+name: notifications/spam_tag
+type: text
+description: Marker after the subject of a digest item that was found in the Gmail Spam folder.
+variables: []
+config: {}
+template: " ⚠️ (spam)"

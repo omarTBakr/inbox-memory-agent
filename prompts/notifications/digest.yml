@@ -1,0 +1,9 @@
+name: notifications/digest
+type: text
+description: Header of the ignored-email digest; buttons below rate each numbered email.
+variables: [count, items]
+config: {}
+template: |
+  🗂 {{count}} email(s) ignored. Under each number, tap the label it should have had (✓ marks the current one), or ✍️ to explain.
+
+  {{items}}

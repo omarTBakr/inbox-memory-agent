@@ -1,0 +1,14 @@
+name: notifications/notified
+type: text
+description: Push message for an email the user should know about but that needs no reply.
+variables: [classification, sender, subject, reasoning, preview, warnings, folder_note]
+config: {}
+template: |
+  🔔 Email for your attention ({{classification}})
+  {{folder_note}}
+  From: {{sender}}
+  Subject: {{subject}}
+  Why: {{reasoning}}
+
+  {{preview}}
+  {{warnings}}

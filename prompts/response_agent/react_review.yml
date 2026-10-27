@@ -1,0 +1,34 @@
+name: response_agent/react_review
+type: text
+description: ReAct "review" step - critic that checks the draft against the email, the gathered facts and the rules.
+variables: [rules, email, context, scratchpad, draft]
+config: {}
+template: |
+  You are reviewing a reply before it is sent. These are the rules it must follow:
+
+  {{rules}}
+
+  < Email >
+  {{email}}
+  </ Email >
+
+  < Known context >
+  {{context}}
+  </ Known context >
+
+  < Steps and tool results >
+  {{scratchpad}}
+  </ Steps and tool results >
+
+  < Draft reply >
+  {{draft}}
+  </ Draft reply >
+
+  Check:
+  - Every stated fact is supported by the email, the known context (memory) or a tool result.
+    Facts and earlier commitments found in the known context ARE supported: do not flag them.
+  - Nothing is invented: no dates, times, numbers, links or new promises that no source backs.
+  - Any proposed or booked time was returned by the calendar tool.
+  - Language and signature follow the rules; it is not an escalation topic; it answers the email.
+  ok = true when none of these is violated; style preferences alone are not issues.
+  List each real problem in issues, briefly and concretely.

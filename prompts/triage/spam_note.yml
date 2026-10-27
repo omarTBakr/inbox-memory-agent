@@ -1,0 +1,9 @@
+name: triage/spam_note
+type: text
+description: Added to the triage input when the email was found in the Gmail Spam folder.
+variables: []
+config: {}
+template: |
+  Note: Gmail put this email in the Spam folder. It may be phishing or junk, but Gmail is sometimes wrong.
+  Classify it as 'notify' only if a real person or service the user deals with sent something important; otherwise 'ignore'.
+  Never classify a Spam email as 'respond'.

@@ -1,0 +1,25 @@
+name: procedural/optimizer
+type: text
+description: >-
+  Feedback message for the procedural-memory optimizer (langmem multi-prompt optimizer).
+  config.targets lists which prompt pieces it may rewrite and when.
+variables: [feedback]
+config:
+  targets:
+    - name: agent_instructions
+      update_instructions: keep the instructions short and to the point
+      when_to_update: Update this prompt whenever there is feedback on how the agent should write emails or schedule events
+    - name: triage_ignore
+      update_instructions: keep the instructions short and to the point
+      when_to_update: Update this prompt whenever there is feedback on which emails should be ignored
+    - name: triage_notify
+      update_instructions: keep the instructions short and to the point
+      when_to_update: Update this prompt whenever there is feedback on which emails the user should be notified of
+    - name: triage_respond
+      update_instructions: keep the instructions short and to the point
+      when_to_update: Update this prompt whenever there is feedback on which emails should be responded to
+template: |
+  Here is the user's feedback on how the assistant handled this email.
+  Update only the prompts this feedback is about:
+
+  {{feedback}}

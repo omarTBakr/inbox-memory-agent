@@ -1,0 +1,6 @@
+name: notifications/none
+type: text
+description: Placeholder used inside notifications when a list (replies, actions) is empty.
+variables: []
+config: {}
+template: "none"

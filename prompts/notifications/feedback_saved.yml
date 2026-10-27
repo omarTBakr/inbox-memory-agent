@@ -1,0 +1,6 @@
+name: notifications/feedback_saved
+type: text
+description: Short confirmation shown after feedback was applied to memory.
+variables: [summary]
+config: {}
+template: "✅ Feedback saved. {{summary}}"

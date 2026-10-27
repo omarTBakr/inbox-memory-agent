@@ -1,0 +1,9 @@
+name: notifications/warnings
+type: text
+description: Block listing the checks a notification failed (schema validation of what the agent did).
+variables: [items]
+config: {}
+template: |
+
+  ⚠️ Please check:
+  {{items}}

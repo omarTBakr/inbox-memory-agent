@@ -1,0 +1,11 @@
+name: notifications/reply_item
+type: text
+description: One sent reply inside a "responded" notification.
+variables: [to, subject, content]
+config: {}
+template: |
+  ➡️ Sent to: {{to}}
+  Subject: {{subject}}
+  ---
+  {{content}}
+  ---

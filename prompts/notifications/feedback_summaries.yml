@@ -1,0 +1,11 @@
+name: notifications/feedback_summaries
+type: text
+description: Wording of what each kind of feedback changed (used inside feedback_saved).
+variables: []
+config:
+  up: "Similar emails will be handled the same way."
+  label: "Similar emails will now be treated as '{label}'."
+  procedural: "Updated: {names}."
+  procedural_none: "No instruction needed to change."
+  down: "Noted. Pick the right label above, or ✍️ to explain."
+template: ""

@@ -1,0 +1,17 @@
+name: response_agent/react_holding
+type: text
+description: ReAct "escalate" step - short holding reply that does not answer the substance.
+variables: [rules, email, reason]
+config: {}
+template: |
+  {{rules}}
+
+  < Email >
+  {{email}}
+  </ Email >
+
+  This email must be escalated to the person you act for. Reason: {{reason}}
+
+  Write a short, polite holding reply to the sender: acknowledge the email and say it will be
+  answered personally soon. Do not answer, approve, decline or promise anything about the substance.
+  Follow the language and signature rules. language = ISO 639-1 code of the language you write in.

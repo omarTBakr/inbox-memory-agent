@@ -1,0 +1,6 @@
+name: notifications/spam_note
+type: text
+description: Line shown in a notification (and digest item) for an email found in the Gmail Spam folder.
+variables: []
+config: {}
+template: "⚠️ From your Spam folder: check the sender before opening links. Tap 'Not spam' to move it to the Inbox."

@@ -1,0 +1,6 @@
+name: notifications/moved_to_inbox
+type: text
+description: Toast after the user tapped 'Not spam' and the email was moved to the Inbox.
+variables: [subject]
+config: {}
+template: "Moved to Inbox: {{subject}}"

@@ -1,0 +1,23 @@
+name: procedural/select
+type: text
+description: >-
+  Credit assignment for procedural memory: given a run and the user's feedback, pick which
+  procedure(s) the feedback is about. Each target lists when it should change.
+variables: [trajectory, feedback, targets]
+config: {}
+template: |
+  An email assistant handled the conversation below, and the user gave feedback on it.
+  Decide which of the assistant's procedures must change so that future runs follow the feedback.
+  Pick only procedures the feedback is actually about; pick none if it is about none of them.
+
+  < Conversation >
+  {{trajectory}}
+  </ Conversation >
+
+  < Feedback >
+  {{feedback}}
+  </ Feedback >
+
+  < Procedures >
+  {{targets}}
+  </ Procedures >
