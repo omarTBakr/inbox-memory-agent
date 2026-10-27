@@ -8,11 +8,11 @@
   An email assistant with long-term memory, built on LangGraph
 </p>
 
-<p align="center">
-  <a href="https://www.linkedin.com/in/omarrbakr/">LinkedIn</a> ·
-  <a href="mailto:bakro0298@gmail.com">bakro0298@gmail.com</a> ·
-  <a href="https://omartbakr.github.io/">omartbakr.github.io</a>
-</p>
+<div align="center">
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/omarrbakr/)[![Gmail](https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:bakro0298@gmail.com)[![LeetCode](https://img.shields.io/badge/LeetCode-FFA116?style=for-the-badge&logo=leetcode&logoColor=black)](https://leetcode.com/u/omar_bakr/)[![Portfolio](https://img.shields.io/badge/Portfolio-333333?style=for-the-badge&logo=googlechrome&logoColor=white)](https://omartbakr.github.io/)
+
+</div>
 
 An email assistant built up in stages, ending as a Gmail-connected worker:
 
