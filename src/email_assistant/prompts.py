@@ -141,6 +141,10 @@ def pull(name: str) -> str:
     return f"{name}: pulled v{remote.version}"
 
 
+def _iso(value: Any) -> str | None:
+    return value.isoformat() if hasattr(value, "isoformat") else value
+
+
 def history(name: str) -> list[dict[str, Any]]:
     """All Langfuse versions of `name`, oldest first."""
     client = _langfuse()
@@ -153,6 +157,8 @@ def history(name: str) -> list[dict[str, Any]]:
             "version": version,
             "labels": list(getattr(p.langfuse_prompt, "labels", []) or []),
             "commit_message": getattr(p.langfuse_prompt, "commit_message", None),
+            "created_at": _iso(getattr(p.langfuse_prompt, "created_at", None)),
             "digest": p.digest,
+            "text": p.template,
         })
     return rows
