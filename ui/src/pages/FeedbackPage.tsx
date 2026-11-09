@@ -26,6 +26,7 @@ type Item = {
 
 const LABELS = ["ignore", "notify", "respond"];
 const COLOR: Record<string, string> = { ignore: "gray", notify: "blue", respond: "green" };
+const showError = (e: Error) => notifications.show({ color: "red", title: "Feedback not saved", message: e.message });
 
 function CommentBox({ item, onDone }: { item: Item; onDone: () => void }) {
   const [comment, setComment] = useState("");
@@ -39,7 +40,7 @@ function CommentBox({ item, onDone }: { item: Item; onDone: () => void }) {
   return (
     <Paper withBorder p="sm" bg="var(--mantine-color-default-hover)">
       <Stack gap="xs">
-        <Textarea size="sm" placeholder="What should the assistant do differently? (rewrites its instructions)" autosize minRows={2}
+        <Textarea size="sm" autoFocus aria-label="Written feedback" placeholder="What should the assistant do differently? (rewrites its instructions)" autosize minRows={2}
                   value={comment} onChange={(e) => setComment(e.currentTarget.value)} />
         <Group>
           <Button size="xs" disabled={!comment} loading={rate.isPending} onClick={() => rate.mutate()}>Apply feedback</Button>
@@ -57,22 +58,30 @@ export function FeedbackPage() {
   const [open, setOpen] = useState<string | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["feedback"] });
   const up = useMutation({ mutationFn: (id: string) => api.post<{ summary: string }>(`/feedback/${id}`, { rating: "up" }),
-                           onSuccess: (r) => { notifications.show({ color: "green", message: r.summary }); refresh(); } });
+                           onSuccess: (r) => { notifications.show({ color: "green", message: r.summary }); refresh(); },
+                           onError: showError });
   const down = useMutation({ mutationFn: (id: string) => api.post<{ summary: string }>(`/feedback/${id}`, { rating: "down" }),
-                             onSuccess: (r) => { notifications.show({ message: r.summary }); refresh(); } });
+                             onSuccess: (r) => { notifications.show({ message: r.summary }); refresh(); },
+                             onError: showError });
   const label = useMutation({
     mutationFn: ({ id, label }: { id: string; label: string }) => api.post<{ summary: string }>(`/feedback/${id}`, { rating: "label", label }),
     onSuccess: (r) => { notifications.show({ color: "green", message: r.summary }); refresh(); },
+    onError: showError,
   });
   const notSpam = useMutation({
     mutationFn: (id: string) => api.post<{ summary: string }>(`/feedback/${id}`, { rating: "not_spam" }),
     onSuccess: (r) => { notifications.show({ color: "green", message: r.summary }); refresh(); },
-    onError: (e) => notifications.show({ color: "red", message: e.message }),
+    onError: showError,
   });
   const digest = useMutation({
     mutationFn: () => api.post<{ items: number; messages_sent: number }>("/feedback/digest/send"),
     onSuccess: (r) => notifications.show({ message: r.items ? `${r.items} ignored email(s), ${r.messages_sent} message(s) sent` : "No ignored emails waiting" }),
+    onError: (e) => notifications.show({ color: "red", title: "Digest not sent", message: e.message }),
   });
+  // one request per row at a time: no double clicks while a rating is being saved
+  const busy = (id: string) =>
+    (up.isPending && up.variables === id) || (down.isPending && down.variables === id)
+    || (label.isPending && label.variables?.id === id) || (notSpam.isPending && notSpam.variables === id);
 
   return (
     <Stack>
@@ -88,13 +97,21 @@ export function FeedbackPage() {
         </Group>
       </Group>
       <Text c="dimmed" size="sm">
-        Pick the right label (✓ marks the current one) or 👍 to confirm: similar emails follow it (episodic memory).
-        ✏️ explains what should change (procedural memory). Same buttons as under each Telegram message.
+        Pick the right label (✓ marks the current one) or <IconThumbUp size={14} style={{ verticalAlign: "middle" }} /> to
+        confirm: similar emails follow it (episodic memory). <IconPencil size={14} style={{ verticalAlign: "middle" }} /> explains
+        what should change (procedural memory). Same buttons as under each Telegram message.
       </Text>
       {listener.data?.last_error && <Alert color="yellow">Listener: {listener.data.last_error}</Alert>}
       {items.isLoading && <Loader />}
+      {items.error && (
+        <Alert color="red" title="Could not load handled emails">
+          {items.error.message}
+          <Group mt="sm"><Button size="xs" variant="light" loading={items.isFetching} onClick={() => items.refetch()}>Retry</Button></Group>
+        </Alert>
+      )}
       {items.data?.length === 0 && <Alert>No handled emails yet: run the samples or your Gmail from Setup → Review.</Alert>}
       {items.data && items.data.length > 0 && (
+        <Table.ScrollContainer minWidth={720}>
         <Table verticalSpacing="xs">
           <Table.Thead>
             <Table.Tr><Table.Th>Email</Table.Th><Table.Th>Decision</Table.Th><Table.Th>Feedback</Table.Th><Table.Th>Memory changed</Table.Th></Table.Tr>
@@ -127,6 +144,8 @@ export function FeedbackPage() {
                         const current = (item.corrected_label ?? item.classification) === l;
                         return (
                           <Button key={l} size="compact-xs" color={COLOR[l]} variant={current ? "filled" : "default"}
+                                  aria-pressed={current} disabled={busy(item.id)}
+                                  loading={label.isPending && label.variables?.id === item.id && label.variables.label === l}
                                   onClick={() => label.mutate({ id: item.id, label: l })}>
                             {current ? "✓ " : ""}{l}
                           </Button>
@@ -135,16 +154,20 @@ export function FeedbackPage() {
                     </Group>
                     <Group gap={4} wrap="nowrap">
                       <ActionIcon variant={item.rating === "up" ? "filled" : "subtle"} color="green" aria-label="Thumbs up"
+                                  aria-pressed={item.rating === "up"} disabled={busy(item.id)}
+                                  loading={up.isPending && up.variables === item.id}
                                   onClick={() => up.mutate(item.id)}><IconThumbUp size={16} /></ActionIcon>
                       <ActionIcon variant={item.rating === "down" ? "filled" : "subtle"} color="red" aria-label="Thumbs down"
+                                  aria-pressed={item.rating === "down"} disabled={busy(item.id)}
+                                  loading={down.isPending && down.variables === item.id}
                                   onClick={() => down.mutate(item.id)}><IconThumbDown size={16} /></ActionIcon>
                       <Tooltip label="Explain what should change">
-                        <ActionIcon variant={open === item.id ? "filled" : "subtle"} aria-label="Written feedback"
+                        <ActionIcon variant={open === item.id ? "filled" : "subtle"} aria-label="Written feedback" aria-expanded={open === item.id}
                                     onClick={() => setOpen(open === item.id ? null : item.id)}><IconPencil size={16} /></ActionIcon>
                       </Tooltip>
                       {item.email.folder === "spam" && (
                         <Button size="compact-xs" variant="light" leftSection={<IconInbox size={14} />}
-                                disabled={item.moved_to_inbox} loading={notSpam.isPending && notSpam.variables === item.id}
+                                disabled={item.moved_to_inbox || busy(item.id)} loading={notSpam.isPending && notSpam.variables === item.id}
                                 onClick={() => notSpam.mutate(item.id)}>
                           {item.moved_to_inbox ? "In Inbox" : "Not spam"}
                         </Button>
@@ -169,6 +192,7 @@ export function FeedbackPage() {
             ))}
           </Table.Tbody>
         </Table>
+        </Table.ScrollContainer>
       )}
     </Stack>
   );

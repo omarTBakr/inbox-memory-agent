@@ -35,7 +35,7 @@ type Props = {
   optionsOverride?: Record<string, Option[]>;
 };
 
-const humanize = (key: string) => key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+export const humanize = (key: string) => key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 function resolve(root: any, node: any): any {
   if (node?.$ref) return resolve(root, root.$defs[node.$ref.split("/").pop()]);

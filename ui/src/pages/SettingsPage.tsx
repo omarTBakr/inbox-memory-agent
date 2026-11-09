@@ -1,6 +1,7 @@
 import { Tabs, Title } from "@mantine/core";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Guide } from "../components/Guide";
+import { confirmLeave } from "../unsaved";
 import { CalendarStep } from "./setup/CalendarStep";
 import { EmbeddingsStep } from "./setup/EmbeddingsStep";
 import { GmailStep } from "./setup/GmailStep";
@@ -24,7 +25,7 @@ export function SettingsPage() {
   return (
     <>
       <Title order={2} mb="md">Settings</Title>
-      <Tabs value={section} onChange={(v) => v && navigate(`/settings/${v}`)} keepMounted={false}>
+      <Tabs value={section} onChange={(v) => v && v !== section && confirmLeave() && navigate(`/settings/${v}`)} keepMounted={false}>
         <Tabs.List mb="lg">
           {TABS.map((t) => <Tabs.Tab key={t.id} value={t.id}>{t.label}</Tabs.Tab>)}
         </Tabs.List>

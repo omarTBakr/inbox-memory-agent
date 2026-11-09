@@ -4,7 +4,7 @@
 import { Alert, Anchor, Box, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Text, Title, useComputedColorScheme } from "@mantine/core";
 import { IconExternalLink, IconRefresh } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../api";
 import { StatTile, type Point } from "../components/StatTile";
 
@@ -15,6 +15,9 @@ type Kpis = { kpis: Record<string, Kpi> };
 // categorical slots 1-3 of the reference palette (validated all-pairs, light + dark)
 const MIX_COLORS = { light: ["#2a78d6", "#eb6834", "#1baf7a"], dark: ["#3987e5", "#d95926", "#199e70"] };
 const MIX_ORDER = ["ignore", "notify", "respond"];
+const KPI_NAMES: Record<string, string> = {
+  feedback: "Feedback", triage_mix: "Triage mix", cost: "Cost", latency_p95: "Latency p95", tokens: "Tokens", warnings: "Warnings",
+};
 
 const fmt = {
   percent: (v: number) => `${Math.round(v * 100)}%`,
@@ -38,7 +41,7 @@ function TriageMix({ kpi }: { kpi?: Kpi }) {
     <Stack gap={6}>
       <Box style={{ display: "flex", gap: 2, height: 10 }}>
         {MIX_ORDER.map((l, i) => (counts[l] ?? 0) > 0 && (
-          <Box key={l} title={`${l}: ${counts[l]}`}
+          <Box key={l} aria-hidden="true"
                style={{ flex: counts[l], background: MIX_COLORS[scheme][i], borderRadius: 4 }} />
         ))}
       </Box>
@@ -60,6 +63,13 @@ export function VisualizationsPage() {
   const [environment, setEnvironment] = useState("current");
   const [page, setPage] = useState("traces");
   const [frameKey, setFrameKey] = useState(0);
+  const frame = useRef<HTMLDivElement>(null);
+  // a tile switches the Langfuse page below and scrolls to it
+  const open = (p: string) => {
+    setPage(p);
+    frame.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const title = (p: string) => p[0].toUpperCase() + p.slice(1);
   const kpis = useQuery({
     queryKey: ["viz-kpis", days, environment],
     queryFn: () => api.get<Kpis>(`/visualizations/kpis?days=${days}&environment=${environment}`),
@@ -67,6 +77,7 @@ export function VisualizationsPage() {
   const c = config.data;
   if (c && !c.enabled) return <Alert>Langfuse is disabled (LANGFUSE_ENABLED=false).</Alert>;
   const k = kpis.data?.kpis ?? {};
+  const loading = kpis.isLoading;
   const fb = k.feedback;
 
   return (
@@ -83,29 +94,30 @@ export function VisualizationsPage() {
 
       <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="sm">
         <StatTile label="Feedback" value={show(fb, fmt.percent)} format={fmt.percent} series={fb?.series}
-                  caption={fb?.count ? `positive · ${fb.count} rating${fb.count === 1 ? "" : "s"}` : "no ratings yet"} onClick={() => setPage("scores")} />
+                  caption={fb?.count ? `positive · ${fb.count} rating${fb.count === 1 ? "" : "s"}` : "no ratings yet"} onClick={() => open("scores")} hint={`Opens ${title("scores")}`} loading={loading} />
         <StatTile label="Triage mix" value={show(k.triage_mix, () => String(Object.values(k.triage_mix!.value as Record<string, number>).reduce((a, b) => a + b, 0)))}
-                  caption="emails handled" onClick={() => setPage("traces")}>
+                  caption="emails handled" onClick={() => open("traces")} hint={`Opens ${title("traces")}`} loading={loading}>
           <TriageMix kpi={k.triage_mix} />
         </StatTile>
         <StatTile label="Cost" value={show(k.cost, fmt.usd)} series={k.cost?.series} format={fmt.usd}
-                  caption="model usage, priced in Langfuse" onClick={() => setPage("dashboards")} />
+                  caption="model usage, priced in Langfuse" onClick={() => open("dashboards")} hint={`Opens ${title("dashboards")}`} loading={loading} />
         <StatTile label="Latency p95" value={show(k.latency_p95, fmt.seconds)} series={k.latency_p95?.series} format={fmt.seconds}
-                  caption="per traced run" onClick={() => setPage("traces")} />
+                  caption="per traced run" onClick={() => open("traces")} hint={`Opens ${title("traces")}`} loading={loading} />
         <StatTile label="Tokens" value={show(k.tokens, fmt.tokens)} series={k.tokens?.series} format={fmt.tokens}
-                  caption="input + output" onClick={() => setPage("dashboards")} />
+                  caption="input + output" onClick={() => open("dashboards")} hint={`Opens ${title("dashboards")}`} loading={loading} />
         <StatTile label="Warnings" value={show(k.warnings, fmt.count)} series={k.warnings?.series} format={fmt.count}
-                  caption="failed notification checks" onClick={() => setPage("scores")} />
+                  caption="failed notification checks" onClick={() => open("scores")} hint={`Opens ${title("scores")}`} loading={loading} />
       </SimpleGrid>
+      {kpis.error && <Alert color="red" title="Could not load the numbers from Langfuse">{kpis.error.message}</Alert>}
       {Object.entries(k).filter(([, v]) => v.error).map(([name, v]) => (
-        <Text key={name} size="xs" c="red">{name}: {v.error}</Text>
+        <Text key={name} size="xs" c="red">{KPI_NAMES[name] ?? name} could not be loaded: {v.error}</Text>
       ))}
 
       {c && (
-        <Stack gap="xs">
+        <Stack gap="xs" ref={frame} style={{ scrollMarginTop: 72 }}>
           <Group justify="space-between">
             <SegmentedControl size="xs" value={page} onChange={setPage}
-                              data={Object.keys(c.pages).map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} />
+                              data={Object.keys(c.pages).map((p) => ({ value: p, label: title(p) }))} />
             <Group gap="xs">
               <Text size="xs" c="dimmed">Not logged in? <Anchor href={c.direct_url} target="_blank" size="xs">Log in to Langfuse</Anchor>, then reload.</Text>
               <Button size="xs" variant="default" leftSection={<IconRefresh size={14} />} onClick={() => setFrameKey((n) => n + 1)}>Reload</Button>

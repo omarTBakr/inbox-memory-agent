@@ -67,7 +67,8 @@ export function GmailStep() {
                 loading={test.isPending} onClick={() => test.mutate()}>
           Test connection
         </Button>
-        {s?.connected && <Button variant="subtle" color="red" onClick={() => disconnect.mutate()}>Disconnect</Button>}
+        {s?.connected && <Button variant="subtle" color="red" loading={disconnect.isPending}
+                onClick={() => window.confirm("Disconnect Gmail? The assistant stops reading your mail until you connect again.") && disconnect.mutate()}>Disconnect</Button>}
         {s && <Badge color={s.connected ? "green" : "gray"}>{s.connected ? "connected" : "not connected"}</Badge>}
       </Group>
       {connect.error && <Alert color="red">{String(connect.error.message)}</Alert>}

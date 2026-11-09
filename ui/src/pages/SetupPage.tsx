@@ -1,10 +1,12 @@
-import { Button, Group, Loader, Paper, Stepper, Title } from "@mantine/core";
+import { Alert, Button, Group, Loader, Paper, Stepper, Title } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconCheck } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { Guide } from "../components/Guide";
+import { confirmLeave } from "../unsaved";
 import { CalendarStep } from "./setup/CalendarStep";
 import { EmbeddingsStep } from "./setup/EmbeddingsStep";
 import { GmailStep } from "./setup/GmailStep";
@@ -17,7 +19,7 @@ import { SectionStep } from "./setup/SectionStep";
 export type SetupStatus = { order: string[]; steps: Record<string, { done: boolean; [k: string]: unknown }> };
 
 // step id (from the backend's order) -> title and page
-const STEP_VIEWS: Record<string, { title: string; render: (status?: SetupStatus) => ReactNode }> = {
+export const STEP_VIEWS: Record<string, { title: string; render: (status?: SetupStatus) => ReactNode }> = {
   health: { title: "System", render: () => <HealthStep /> },
   profile: { title: "Profile", render: () => <SectionStep section="profile" /> },
   notifications: { title: "Notifications", render: () => <NotificationsStep /> },
@@ -32,17 +34,35 @@ export function SetupPage() {
   const { step } = useParams();
   const navigate = useNavigate();
   const status = useQuery({ queryKey: ["setup-status"], queryFn: () => api.get<SetupStatus>("/setup/status") });
+  const narrow = useMediaQuery("(max-width: 62em)");
+  const heading = useRef<HTMLHeadingElement>(null);
+  const first = useRef(true);
+  useEffect(() => {
+    // move focus to the new step's heading (not on first load)
+    if (first.current) first.current = false;
+    else heading.current?.focus();
+  }, [step]);
+
+  if (status.error) {
+    return (
+      <Alert color="red" title="Could not load the setup status">
+        {status.error.message}
+        <Group mt="sm"><Button size="xs" variant="light" loading={status.isFetching} onClick={() => status.refetch()}>Retry</Button></Group>
+      </Alert>
+    );
+  }
   if (!status.data) return <Loader />;
 
   const order = status.data.order.filter((s) => STEP_VIEWS[s]);
   if (!step || !order.includes(step)) return <Navigate to={`/setup/${order[0]}`} replace />;
   const active = order.indexOf(step);
-  const go = (i: number) => navigate(`/setup/${order[i]}`);
+  const go = (i: number) => { if (i !== active && confirmLeave()) navigate(`/setup/${order[i]}`); };
 
   return (
     <>
       <Title order={2} mb="md">Setup</Title>
-      <Stepper active={active} onStepClick={go} size="sm" mb="lg" allowNextStepsSelect>
+      <Stepper active={active} onStepClick={go} size="sm" mb="lg" allowNextStepsSelect
+               orientation={narrow ? "vertical" : "horizontal"}>
         {order.map((s, i) => {
           // Mantine treats every step before the active one as completed; show real status instead
           const done = !!status.data.steps[s]?.done;
@@ -55,7 +75,7 @@ export function SetupPage() {
         })}
       </Stepper>
       <Paper withBorder p="lg" radius="md">
-        <Title order={3} mb="md">{STEP_VIEWS[step].title}</Title>
+        <Title order={3} mb="md" ref={heading} tabIndex={-1} style={{ outline: "none" }}>{STEP_VIEWS[step].title}</Title>
         <Guide step={step} />
         {STEP_VIEWS[step].render(status.data)}
       </Paper>
