@@ -1,0 +1,130 @@
+@startuml notifications_feedback
+title Class Diagram - Notifications & Feedback
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+allowmixing
+
+package notifications {
+  class EmailRef <<BaseModel>> {
+    ref: str
+    sender: str
+    to: str
+    subject: str
+    folder: Folder
+  }
+  class SentReply <<BaseModel>> {
+    to
+    subject
+    content
+  }
+  class Action <<BaseModel>> {
+    tool: str
+    args: dict
+  }
+  abstract class _Base <<BaseModel>> {
+    feedback_id: str
+    email: EmailRef
+    reasoning: str
+    warnings: list[str]
+  }
+  class RespondedNotification {
+    kind = "responded"
+    replies: list[SentReply]
+    actions: list[Action]
+    escalation: str
+  }
+  class NotifiedNotification {
+    kind = "notified"
+    preview: str
+  }
+  class DigestItem <<BaseModel>> {
+    feedback_id
+    email: EmailRef
+    reasoning
+  }
+  class IgnoredDigest <<BaseModel>> {
+    kind = "ignored_digest"
+    items: list[DigestItem]
+  }
+  _Base <|-- RespondedNotification
+  _Base <|-- NotifiedNotification
+  _Base *-- EmailRef
+  RespondedNotification *-- "*" SentReply
+  RespondedNotification *-- "*" Action
+  IgnoredDigest *-- "1..*" DigestItem
+
+  class summary <<module>> {
+    +build(state, feedback_id, ref, tool_names): Notification
+    +digest_item(...): DigestItem
+    +render(notification): str
+  }
+  class push <<module>> {
+    +push(text, cfg, channels, dry_run, keyboard): list[dict]
+    +telegram_chat_ids(token)
+  }
+  class Listener {
+    +seen_chats: dict
+    +running: bool
+    +start()
+    +stop()
+    -_loop()
+    -_poll()
+    -_handle(update)
+    -_callback(query)
+    -_comment(message)
+    -_refresh_keyboard(chat_id, message_id)
+    -_maybe_digest()
+  }
+  class telegram_bot <<module>> {
+    +api(method, **payload)
+    +send(text, chat_id, keyboard, reply_to)
+    +feedback_keyboard(item)
+    +digest_keyboard(items)
+  }
+  class telegram_self <<module>> {
+    +send_code()
+    +verify()
+    +send(text)
+  }
+  summary ..> RespondedNotification
+  summary ..> NotifiedNotification
+  summary ..> IgnoredDigest
+  push ..> telegram_bot
+  push ..> telegram_self
+  Listener ..> telegram_bot
+}
+
+package feedback {
+  class apply <<module>> {
+    +thumbs_up(item_id)
+    +thumbs_down(item_id)
+    +correct_label(item_id, label)
+    +reply_feedback(item_id, comment)
+    +not_spam(item_id)
+  }
+  class "store" as fstore <<module>> {
+    +create(item_id, **fields)
+    +update(item_id, **fields)
+    +get(item_id)
+    +by_message(id)
+    +by_prompt_message(id)
+    +pending_digest()
+    +stats(mlflow_run_id)
+  }
+  class digest <<module>> {
+    +send_digest(): dict
+  }
+  database feedback_items
+  fstore --> feedback_items
+  apply ..> fstore
+  digest ..> fstore
+}
+Listener ..> apply : button / reply
+Listener ..> digest : daily
+digest ..> IgnoredDigest
+apply ..> "memory.episodic.record_example"
+apply ..> "memory.procedural.optimize"
+apply ..> "gmail.actions.not_spam"
+apply ..> "tracing.score (Langfuse)"
+@enduml

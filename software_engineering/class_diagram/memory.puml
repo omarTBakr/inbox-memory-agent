@@ -1,0 +1,70 @@
+@startuml memory
+title Class Diagram - Long-term Memory (src/email_assistant/memory)
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+allowmixing
+
+class PostgresStore <<langgraph, pgvector>> {
+  +put(namespace, key, value, index)
+  +get(namespace, key)
+  +search(namespace, query, limit)
+  +delete(namespace, key)
+}
+class PostgresSaver <<langgraph checkpointer>>
+
+class store <<module>> {
+  +get_store(): PostgresStore
+  +get_checkpointer(): PostgresSaver
+  +namespace(*parts): tuple
+  +setup_database()
+}
+store ..> PostgresStore
+store ..> PostgresSaver
+
+class semantic <<module>> {
+  +semantic_memory_tools(profile): list[BaseTool]
+}
+note right of semantic
+  langmem manage_memory + search_memory tools,
+  namespace (memory, {user_id}, semantic)
+end note
+
+class episodic <<module>> {
+  +episodic_namespace(user_id)
+  +record_example(store, user_id, email, label, source): str
+  +find_examples(store, user_id, email): list[SearchItem]
+  +format_example(value): str
+  +triage_examples(email, config): list[str]
+}
+
+class Procedures <<dict[str,str]>> {
+  triage_ignore
+  triage_notify
+  triage_respond
+  agent_instructions
+}
+class procedural <<module>> {
+  +procedural_namespace(user_id)
+  +profile_procedures(profile): Procedures
+  +load(store, user_id, profile): Procedures
+  +from_store(profile): ProceduresFn
+  +save(store, user_id, name, prompt, feedback): int
+  +compact_trajectory(trajectory): list[dict]
+  +optimize(store, user_id, profile, trajectory, feedback): list[dict]
+  -_select(targets, current, turns, feedback)
+}
+procedural ..> Procedures
+semantic ..> PostgresStore
+episodic ..> PostgresStore
+procedural ..> PostgresStore
+class "prompts.record_version" as rv <<function>>
+class "api.routers.memory" as api <<module>> {
+  list / search semantic & episodic
+  delete one item (procedural = reset)
+  procedures + Langfuse history
+}
+api ..> PostgresStore : search / get / delete
+api ..> procedural : load seeds
+procedural ..> rv : Langfuse history
+@enduml

@@ -1,0 +1,32 @@
+@startuml uc12_ignored_digest
+title UC12 - Daily digest of ignored emails
+autonumber
+participant "Listener._loop" as L
+participant "config_store" as CS
+participant "feedback.digest" as D
+participant "feedback.store" as FS
+participant "notifications.summary" as S
+participant "telegram_bot" as TB
+participant Telegram as TG
+actor Owner
+
+L -> L : _maybe_digest()
+L -> CS : section("notifications")
+alt ignored_digest on, telegram channel, time >= digest_time,\nnot yet sent today (user timezone)
+  L -> D : send_digest()
+  D -> FS : pending_digest()
+  FS --> D : ignored items not yet sent
+  loop chunks of digest_max_items
+    D -> S : IgnoredDigest(items=digest_item(...)); render()
+    alt dry_run
+      D -> D : collect text only
+    else
+      D -> TB : send(text, chat_id, digest_keyboard(chunk))
+      TB -> TG : sendMessage
+      D -> FS : update(digest_sent=true, telegram_message_id)
+    end
+  end
+  TG -> Owner : digest with buttons per email
+  Owner -> TG : correct a wrongly ignored email (-> UC06)
+end
+@enduml

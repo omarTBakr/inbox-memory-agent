@@ -1,0 +1,36 @@
+@startuml uc10_gmail_oauth
+title UC10 - Connect Gmail with Google OAuth
+autonumber
+actor Admin
+participant "React UI\n(GmailStep)" as UI
+participant "API /api/gmail" as API
+participant "gmail.client" as C
+participant "config_store" as CS
+database "app_secrets\n(Fernet encrypted)" as SEC
+participant Google as GO
+
+Admin -> UI : Upload client JSON
+UI -> API : POST /gmail/client (file)
+API -> C : save_client_config(raw)
+C -> CS : set_secret("gmail", "client", json)
+CS -> SEC : encrypt + store
+Admin -> UI : Connect Google
+UI -> API : GET /gmail/oauth/start
+API -> C : start_oauth()
+C --> API : consent URL (state kept in _pending)
+API --> UI : redirect
+UI -> GO : consent page
+Admin -> GO : sign in as test user, allow
+GO -> API : GET /gmail/oauth/callback?state&code
+API -> C : finish_oauth(state, code)
+C -> GO : fetch_token(code)
+GO --> C : credentials
+C -> CS : set_secret("gmail", "token", creds)
+CS -> SEC : encrypt + store
+API --> UI : redirect /setup/gmail?gmail=connected
+Admin -> UI : Test connection
+UI -> API : POST /gmail/test
+API -> C : connection_test()
+C -> GO : users.getProfile / unread count
+API --> UI : address + unread count
+@enduml

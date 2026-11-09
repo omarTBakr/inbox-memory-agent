@@ -1,0 +1,64 @@
+@startuml uc01_process_new_email
+title UC01 - Auto-handle a new Gmail message (Stage 04)
+autonumber
+participant "Watcher\n(thread)" as W
+database Postgres as PG
+participant "watcher module" as WM
+participant "Gmail API" as G
+participant "messages" as M
+participant "stage_runner.run" as SR
+participant "Graph\n(stage 04)" as GR
+participant "triage_router" as TR
+participant "LLM" as LLM
+participant "response_agent\n(ReAct)" as RA
+participant "notify_user" as NU
+participant "feedback.store" as FS
+participant "Langfuse" as LF
+participant "push / Telegram" as TG
+
+loop every gmail.poll_seconds while auto_trigger
+  W -> PG : pg_try_advisory_lock(LOCK_KEY)
+  alt lock not acquired
+    W -> W : last_error = "Another watcher..."
+  else lock held
+    W -> WM : check_once()
+    WM -> G : history.list(start=history_id)\n+ messages.list(query / spam_query)
+    G --> WM : new message ids
+    WM -> PG : enqueue(found) into gmail_messages
+    WM -> PG : pending(max_per_tick)
+    loop each pending message id
+      WM -> M : fetch([id])
+      M -> G : messages.get(id)
+      M --> WM : SampleEmail(email = to_email(msg))
+      WM -> SR : run(last stage, [sample])
+      SR -> GR : invoke({email_input}, config{user_id, trace_id, mlflow_run_id})
+      GR -> TR : triage_router(state)
+      TR -> PG : triage_examples() (episodic search)\n+ procedures.load()
+      TR -> LLM : Router structured output
+      LLM --> TR : classification + reasoning
+      opt folder == spam and respond
+        TR -> TR : downgrade to notify (spam guard)
+      end
+      alt respond
+        TR -> RA : Command(goto=response_agent)
+        RA --> NU : messages (reply sent via write_email)
+      else notify / ignore
+        TR -> NU : Command(goto=notify_user)
+      end
+      NU -> LF : score(triage_classification)
+      NU -> FS : create(item_id, email, classification, trajectory...)
+      alt classification in notify_on
+        NU -> TG : push(render(notification), feedback_keyboard)
+        TG --> NU : message_id
+        NU -> FS : update(telegram_message_id)
+      else ignore
+        NU -> NU : left for ignored digest
+      end
+      GR --> SR : final state
+      SR --> WM : row(classification, feedback_id)
+      WM -> PG : mark(id, "done" | "error")
+    end
+  end
+  W -> W : _wait(poll_seconds)
+end
+@enduml

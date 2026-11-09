@@ -1,0 +1,40 @@
+@startuml uc17_rule_history
+title UC17 - Rule version history and reset to profile
+autonumber
+actor Owner
+participant "MemoryPage\n(Rules tab)" as UI
+participant "API /api/memory" as API
+participant "memory.procedural" as P
+database "Store\n(procedural)" as ST
+participant "prompts.history" as PR
+participant "Langfuse" as LF
+
+Owner -> UI : Rules tab
+UI -> API : GET /memory/procedures
+API -> P : profile_procedures(profile) (seeds)
+API -> ST : get(ns, name) for each rule
+API --> UI : prompt, profile_prompt, version, updated_at, feedback
+UI -> UI : badge "vN · learned" or "from profile"
+Owner -> UI : History
+UI -> API : GET /memory/procedures/{name}/history
+alt Langfuse disabled
+  API --> UI : note "no history kept"
+else
+  API -> PR : history("procedural/<user>/<name>")
+  PR -> LF : list versions + get each version
+  LF --> PR : text, commit message ("vN: feedback")
+  API --> UI : versions newest first + profile text
+  UI -> UI : timeline; DiffText(previous, version)\n(word diff: removed struck, added underlined)
+end
+Owner -> UI : Reset to profile
+UI -> Owner : confirm
+UI -> API : DELETE /memory/procedural/{name}
+API -> ST : delete(ns, name)
+API --> UI : ok
+UI -> API : GET /memory/procedures (refetch)
+note right of P
+  procedural.load() now falls back to the
+  profile text; the learned versions stay
+  in Langfuse history.
+end note
+@enduml

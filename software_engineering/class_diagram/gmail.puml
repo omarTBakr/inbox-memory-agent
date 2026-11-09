@@ -1,0 +1,79 @@
+@startuml gmail
+title Class Diagram - Gmail Integration (src/email_assistant/gmail)
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+allowmixing
+
+class Watcher {
+  +LOCK_KEY: str
+  +last_check: datetime
+  +next_check: datetime
+  +last_result: dict
+  +last_error: str
+  +has_lock: bool
+  +alive: bool
+  +start()
+  +stop()
+  +check_now()
+  +status(): dict
+  -_loop()
+  -_wait(seconds)
+}
+class watcher <<module>> {
+  +setup()
+  +find_new(gmail, cfg): dict[str,str]
+  +enqueue(found): int
+  +pending(limit): list[str]
+  +mark(message_id, status, **fields)
+  +process(ids, gmail): list[dict]
+  +check_once(): dict
+  +recent(limit), counts_today()
+}
+Watcher ..> watcher : check_once()
+
+class client <<module>> {
+  +scopes()
+  +save_client_config(raw)
+  +start_oauth(): str
+  +finish_oauth(state, code)
+  +disconnect()
+  +get_service()
+  +connection_test(): dict
+}
+class messages <<module>> {
+  +to_email(message): Email
+  +fetch(ids, gmail): list[SampleEmail]
+  +recent(count, query): list[SampleEmail]
+}
+class actions <<module>> {
+  +message_id(email_ref): str
+  +not_spam(email_ref)
+}
+class worker <<module>> {
+  +main()
+}
+class SampleEmail <<dataclass>> {
+  id: str
+  email: Email
+  expected: Classification
+}
+class GmailConfig <<BaseModel>> {
+  auto_trigger: bool
+  query: str
+  spam_query: str
+  poll_seconds: int
+  max_per_tick: int
+}
+
+class "stage_runner.run" as sr <<function>>
+watcher ..> client
+watcher ..> messages
+watcher ..> GmailConfig
+watcher ..> sr : last stage
+messages ..> SampleEmail
+actions ..> client
+worker ..> Watcher
+database "gmail_messages\n(queue table)" as Q
+watcher --> Q
+@enduml

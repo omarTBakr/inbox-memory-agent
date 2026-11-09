@@ -1,0 +1,45 @@
+@startuml uc13_memory_browser
+title UC13 - Browse, search and forget memories (Memory page)
+autonumber
+actor Owner
+participant "MemoryPage\n(Facts / Labelled examples)" as UI
+participant "API /api/memory" as API
+participant "load_profile" as P
+participant "PostgresStore\n(pgvector)" as ST
+participant "Embeddings\n(Ollama / API)" as EMB
+
+Owner -> UI : open Memory (?tab=facts)
+UI -> API : GET /memory/semantic?limit=50&offset=0
+API -> P : user id
+API -> ST : search((email_assistant, user, semantic), limit=51)
+ST --> API : newest items
+API --> UI : {items, has_more}
+Owner -> UI : type "who reviews the API docs?"
+UI -> UI : debounce 400 ms
+UI -> API : GET /memory/semantic?q=...
+API -> ST : search(ns, query=q)
+ST -> EMB : embed(query)
+ST --> API : items ranked by similarity (score)
+API --> UI : items + match scores
+opt Load more
+  UI -> API : GET ...&offset=50
+end
+Owner -> UI : Forget (trash icon)
+UI -> Owner : confirm "cannot be undone"
+alt confirmed
+  UI -> API : DELETE /memory/semantic/{key}
+  API -> ST : get(ns, key)
+  alt missing
+    API --> UI : 404 -> red toast
+  else found
+    API -> ST : delete(ns, key)
+    API --> UI : {deleted}
+    UI -> UI : toast + refetch list
+  end
+end
+note over UI, ST
+  The Labelled examples tab works the same on
+  (email_assistant, user, episodic); items show
+  subject, sender, label and where the label came from.
+end note
+@enduml

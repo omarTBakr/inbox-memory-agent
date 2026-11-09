@@ -1,0 +1,131 @@
+@startuml graph_and_agents
+title Class Diagram - Graph & Agents (src/email_assistant/graph, stages.py, tools)
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+
+class Stage <<dataclass>> {
+  +id: str
+  +module: str
+  +uses_store: bool
+  +build_graph(profile, store)
+}
+class STAGES <<registry>> {
+  01_baseline
+  02_semantic_memory
+  03_semantic_episodic
+  04_semantic_episodic_procedural
+}
+STAGES "1" o-- "4" Stage
+
+class Email <<TypedDict>> {
+  author: str
+  to: str
+  subject: str
+  email_thread: str
+  folder: inbox|spam
+}
+class Router <<BaseModel>> {
+  +reasoning: str
+  +classification: ignore|notify|respond
+}
+class State <<TypedDict>> {
+  email_input: Email
+  classification: Classification
+  triage_reasoning: str
+  examples_used: int
+  notifications: list[dict]
+  feedback_id: str
+  escalation: str
+  messages: list
+}
+State --> Email
+
+class baseline <<module>> {
+  +build_email_graph(profile, tools, name, store, examples, procedures, notify, response_agent)
+  +build_graph(profile, store)
+  -triage_router(state, config): Command
+}
+class semantic <<module>> {
+  +build_graph(profile, store)
+}
+class episodic <<module>> {
+  +build_graph(profile, store)
+}
+class procedural <<module>> {
+  +build_graph(profile, store)
+  -notify_user(state, config): dict
+}
+Stage ..> baseline : builds
+Stage ..> semantic
+Stage ..> episodic
+Stage ..> procedural
+semantic ..> baseline : reuses
+episodic ..> baseline : reuses
+procedural ..> baseline : reuses
+baseline ..> Router : structured output
+baseline ..> State
+
+class react_agent <<module>> {
+  +build_react_agent(profile, tools, procedures)
+  +check_draft(draft, email, profile, observations): list[str]
+  +thought_model(tool_names): type
+  -gather_context()
+  -think()
+  -act()
+  -draft_reply()
+  -review()
+  -escalate()
+  -send()
+}
+class ReactState <<TypedDict>> {
+  email_input: Email
+  messages: list
+  scratchpad: list[Step]
+  decision: dict
+  draft: dict
+  issues: list[str]
+  revisions: int
+  escalation: str
+}
+class Step <<TypedDict>> {
+  thought: str
+  action: str
+  input: dict
+  observation: str
+}
+class Draft <<BaseModel>> {
+  to: str
+  subject: str
+  body: str
+  language: str
+  facts: list[Fact]
+  commitments: list[str]
+}
+class Fact <<BaseModel>> {
+  fact: str
+  source: email|memory|tool
+}
+class HoldingReply <<BaseModel>> {
+  to, subject, body, language
+}
+class Review <<BaseModel>> {
+  ok: bool
+  issues: list[str]
+}
+procedural ..> react_agent : response_agent=
+react_agent ..> ReactState
+ReactState "1" *-- "*" Step
+Draft "1" *-- "*" Fact
+react_agent ..> Draft
+react_agent ..> HoldingReply
+react_agent ..> Review
+
+class email_tools <<module>> {
+  +email_tools(profile): list[BaseTool]
+  write_email(to, subject, content)
+  schedule_meeting(attendees, subject, duration_minutes, preferred_day)
+  check_calendar_availability(day)
+}
+react_agent ..> email_tools : calls tools
+@enduml
