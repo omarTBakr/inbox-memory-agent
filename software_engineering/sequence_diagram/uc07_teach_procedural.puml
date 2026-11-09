@@ -1,0 +1,43 @@
+@startuml uc07_teach_procedural
+title UC07 - Teach with free-text feedback (procedural memory)
+autonumber
+actor Owner
+participant Telegram as TG
+participant Listener as L
+participant "feedback.apply" as A
+participant "memory.procedural" as P
+participant "LLM\n(select + langmem optimizer)" as LLM
+database "Store\n(procedural)" as ST
+participant "Langfuse\n(prompt versions)" as LF
+participant "feedback.store" as FS
+
+Owner -> TG : press "Why?"
+L -> TG : send(feedback_why prompt, force_reply)
+L -> FS : update(prompt_message_id)
+Owner -> TG : reply "this should have been ignored, it's a newsletter"
+L -> TG : getUpdates()
+TG --> L : message replying to prompt
+L -> FS : by_prompt_message(reply_to id)
+L -> A : reply_feedback(item_id, text)
+A -> P : optimize(store, user_id, profile, trajectory, feedback)
+P -> ST : load() current procedures
+P -> LLM : _select(): which targets?\n(triage_ignore / notify / respond / agent_instructions)
+LLM --> P : names
+loop each selected target
+  P -> LLM : optimizer.invoke(trajectory, feedback, current prompt)
+  LLM --> P : rewritten prompt
+  opt changed
+    P -> ST : save(name, prompt, version+1)
+    P -> LF : record_version("procedural/<user>/<name>")
+  end
+end
+P --> A : changes
+A -> FS : update(comment, applied += procedural)
+A -> LF : score(user_feedback=0, comment)
+A --> L : summary
+L -> TG : send("Saved: ...", reply_to)
+note over Owner, FS
+  CLI alternative: make teach EMAIL=<id> FEEDBACK="..."
+  runs the stage on the email, then procedural.optimize()
+end note
+@enduml

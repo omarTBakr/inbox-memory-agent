@@ -1,0 +1,33 @@
+@startuml uc05_thumbs_feedback
+title UC05 - Rate a handled email with 👍 / 👎 on Telegram
+autonumber
+actor Owner
+participant Telegram as TG
+participant "Listener\n(long-poll)" as L
+participant "feedback.apply" as A
+participant "feedback.store" as FS
+database "Store\n(episodic)" as ST
+participant Langfuse as LF
+participant MLflow as ML
+
+Owner -> TG : press 👍 or 👎
+L -> TG : getUpdates()
+TG --> L : callback_query "fb:<item_id>:up|down"
+L -> L : _handle(): chat id == owner? else ignore
+L -> FS : get(item_id)
+alt up
+  L -> A : thumbs_up(item_id)
+  A -> ST : record_example(email, classification, "feedback:up")
+  A -> FS : update(rating=up, applied += episodic)
+  A -> LF : score(user_feedback = 1)
+  A -> ML : log_metric(feedback_up / feedback_down)
+else down
+  L -> A : thumbs_down(item_id)
+  A -> FS : update(rating=down)
+  A -> LF : score(user_feedback = 0)
+end
+A --> L : toast text
+L -> TG : answerCallbackQuery(toast)
+L -> FS : by_message(message_id)
+L -> TG : editMessageReplyMarkup (tick moves)
+@enduml

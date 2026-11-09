@@ -45,6 +45,18 @@ Forms are generated from the pydantic models in `src/email_assistant/config_mode
 What the UI saves goes to Postgres (`app_config`, versioned; secrets encrypted in `app_secrets` with `APP_ENCRYPTION_KEY`);
 until a section is saved, `config/user_profile.yml` and `.env` are used. `make config-import` copies the YAML profile in.
 
+| Page | What it does |
+|---|---|
+| **Setup** | the wizard above; `/` opens the first unfinished step (or Feedback once setup is done) |
+| **Feedback** | every handled email: 👍 / 👎, correct the label, explain what should change, Not spam (same as the Telegram buttons) |
+| **Memory** | **Facts** (semantic) and **Labelled examples** (episodic): browse, search by meaning, forget one. **Rules** (procedural): the live triage rules and reply instructions, every learned version with a word diff and the feedback behind it, *Reset to profile* |
+| **Visualizations** | KPI tiles from Langfuse (feedback, triage mix, cost, latency, tokens, warnings) and the Langfuse UI embedded |
+| **Settings** | the same sections as Setup; each saved section has a **History** of its versions (fields changed, *Load into form*) |
+
+Forms warn before unsaved changes are lost (leaving the page, switching steps or tabs, closing the tab).
+API for the Memory page: `GET /api/memory/{semantic|episodic}?q=`, `DELETE /api/memory/{kind}/{key}`,
+`GET /api/memory/procedures`, `GET /api/memory/procedures/{name}/history`.
+
 ## Setup: Telegram bot
 The assistant tells you on Telegram what it did, with buttons to correct it (👍 / 👎 / ignore · notify · respond).
 
@@ -111,6 +123,7 @@ Code reads configuration only through three sources (a UI will edit these later)
 Stages are registered once in `src/email_assistant/stages.py`.
 
 ## Memory & feedback
+In the UI everything below is on the **Memory** and **Feedback** pages; from the terminal:
 - `make memory-list [KIND=semantic|episodic]`, `make memory-clear CONFIRM=yes [KIND=...]`
 - `make feedback EMAIL=<sample id> LABEL=ignore|notify|respond` stores a labelled example (episodic memory, stage 03+)
 - `make teach EMAIL=<sample id> FEEDBACK="..."` rewrites the procedures the feedback is about (stage 04); `make procedures` shows the live ones, history is in Langfuse as `procedural/<user id>/<name>`
@@ -142,7 +155,7 @@ Makefile                  every task; reads .env
 
 ## Quick start
 ```bash
-make setup          # .env (with generated secrets), .venv, dependencies
+make setup          # .env (with generated secrets), .venv, dependencies (or with uv, below)
 # edit .env passwords and config/user_profile.yml TODOs
 make up             # postgres, mlflow (localhost:5000), langfuse (localhost:3000)
 make pull-models    # ollama models from .env
@@ -150,3 +163,16 @@ make check-env db-init prompts-push
 make stage1         # run a stage as an MLflow run
 make help           # all targets
 ```
+
+With [uv](https://docs.astral.sh/uv/) instead of `make setup`'s pip venv:
+```bash
+uv sync --extra dev                    # .venv from uv.lock
+uv run pytest -q
+uv run uvicorn email_assistant.api.main:app --port 8000
+```
+On an NTFS / exFAT drive the venv's symlinks don't work from Linux: keep the environment in another folder and copy
+packages instead of linking, e.g. `export UV_PROJECT_ENVIRONMENT=.venv-uv UV_LINK_MODE=copy` before `uv sync` / `uv run`.
+The same drives break `ui/node_modules/.bin`; run tools through node, e.g. `node node_modules/vite/bin/vite.js`.
+
+## Software engineering docs
+User stories, use-case, class and sequence diagrams (PlantUML) are in **[software_engineering/](software_engineering/README.md)**.

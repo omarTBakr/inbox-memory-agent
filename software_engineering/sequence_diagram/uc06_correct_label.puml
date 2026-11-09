@@ -1,0 +1,31 @@
+@startuml uc06_correct_label
+title UC06 - Correct an email's label (episodic memory)
+autonumber
+actor Owner
+participant Telegram as TG
+participant Listener as L
+participant "feedback.apply" as A
+participant "feedback.store" as FS
+database "Store\n(episodic, pgvector)" as ST
+participant Langfuse as LF
+participant "triage_router\n(next email)" as TR
+
+Owner -> TG : press label button (ignore / notify / respond)
+L -> TG : getUpdates()
+TG --> L : callback "fb:<id>:label_<label>"
+L -> A : correct_label(item_id, label)
+A -> FS : get(item_id)
+alt label == assistant's classification
+  A -> A : thumbs_up(item_id)
+else different label
+  A -> ST : record_example(email, label, "feedback:label")\n(embeds the email)
+  A -> FS : update(rating=down, corrected_label=label)
+  A -> LF : score(user_feedback=0, "should be <label>")
+end
+A --> L : toast
+L -> TG : answerCallbackQuery + refresh keyboard
+== Later: a similar email arrives ==
+TR -> ST : find_examples(email) top_k, min_score
+ST --> TR : similar labelled emails
+TR -> TR : few-shot examples in triage prompt
+@enduml

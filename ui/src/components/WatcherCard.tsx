@@ -31,6 +31,7 @@ export function WatcherCard({ connected }: { connected: boolean }) {
     mutationFn: (action: "on" | "off" | "check") => api.post<Status>(`/gmail/watcher/${action}`),
     onSuccess: (data) => {
       queryClient.setQueryData(["watcher"], data);
+      // on/off saves gmail.auto_trigger; SectionEditor merges it without losing unsaved edits
       queryClient.invalidateQueries({ queryKey: ["config", "gmail"] });
     },
   });

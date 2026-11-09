@@ -52,7 +52,8 @@ export function TelegramSelfPanel({ save }: { save: () => Promise<void> }) {
           <Button variant="light" loading={sendCode.isPending} onClick={() => sendCode.mutate()}>
             {s?.connected ? "Log in again" : "Send login code"}
           </Button>
-          {s?.connected && <Button variant="subtle" color="red" onClick={() => logout.mutate()}>Log out</Button>}
+          {s?.connected && <Button variant="subtle" color="red" loading={logout.isPending}
+                onClick={() => window.confirm("Log out of Telegram Saved Messages? You will need a new login code to reconnect.") && logout.mutate()}>Log out</Button>}
         </Group>
         {codeSent && (
           <Group align="flex-end">

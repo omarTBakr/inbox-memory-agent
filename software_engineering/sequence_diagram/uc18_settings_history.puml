@@ -1,0 +1,40 @@
+@startuml uc18_settings_history
+title UC18/UC19 - Settings history, load an old version, unsaved-changes guard
+autonumber
+actor Admin
+participant "SectionEditor" as SE
+participant "ConfigHistory\n(drawer)" as CH
+participant "unsaved\n(module)" as U
+participant "API /api/config" as API
+database "app_config_history" as H
+
+Admin -> SE : History (next to "Saved · vN")
+SE -> CH : open
+CH -> API : GET /config/{section}/history
+API -> H : versions DESC
+API --> CH : [{version, data, saved_at}]
+CH -> CH : changedFields(previous, version)\n(table: field, before, after)
+Admin -> CH : Load into form (old version)
+CH -> SE : setValue(old data)
+SE -> SE : isDirty = stableJson(value) != saved data
+SE -> U : setDirty(section, true)
+SE -> Admin : badge "Unsaved changes"
+alt Admin presses Save
+  SE -> API : PUT /config/{section}
+  API --> SE : {version: N+1}
+  SE -> U : setDirty(section, false)
+else Admin leaves (nav link, Back/Next, tab, close tab)
+  U -> Admin : confirm "unsaved changes (section). Leave?"
+  alt stay
+    U --> SE : navigation cancelled
+  else leave
+    U -> U : clear dirty set
+    note right of U : edits are discarded
+  end
+end
+note over SE, API
+  A refetch while dirty (e.g. the watcher switch saved
+  gmail.auto_trigger) merges server changes into the
+  fields the admin has not touched instead of wiping edits.
+end note
+@enduml

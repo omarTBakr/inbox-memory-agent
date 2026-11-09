@@ -1,0 +1,180 @@
+@startuml config_api
+title Class Diagram - Configuration & API
+skinparam classAttributeIconSize 0
+hide empty members
+set separator none
+allowmixing
+
+class Settings <<pydantic BaseSettings>> {
+  .env values: models, postgres,
+  langfuse, mlflow, gmail, telegram...
+}
+class get_settings <<function>>
+get_settings ..> Settings
+
+package config_models {
+  class User {
+    id
+    name
+    full_name
+    timezone
+    user_profile_background
+  }
+  class WritingStyle
+  class Contacts
+  class Contact
+  class TriageRules {
+    ignore
+    notify
+    respond
+  }
+  class Scheduling
+  class WorkingHours
+  class ProfileSection {
+    user
+    writing_style
+    contacts
+    triage_rules
+    scheduling
+    agent_instructions
+  }
+  class Profile
+  class Notifications {
+    channels
+    notify_on
+    telegram_chat_id
+    dry_run
+    ignored_digest
+    digest_time
+  }
+  class GmailConfig {
+    auto_trigger
+    query
+    spam_query
+    poll_seconds
+    max_per_tick
+  }
+  class CalendarConfig
+  class ModelConfig {
+    provider
+    model
+    base_url
+    temperature
+  }
+  class EmbeddingsConfig {
+    provider
+    model
+    dims
+  }
+  ProfileSection <|-- Profile
+  ProfileSection *-- User
+  ProfileSection *-- WritingStyle
+  ProfileSection *-- Contacts
+  ProfileSection *-- TriageRules
+  ProfileSection *-- Scheduling
+  Contacts *-- "*" Contact
+  Scheduling *-- WorkingHours
+  Profile *-- Notifications
+}
+
+class config_store <<module>> {
+  +save(section, data): int
+  +load_saved(section)
+  +history(section)
+  +set_secret(section, name, value)
+  +delete_secret(section, name)
+  +section(name): BaseModel
+  +secret(section, name): str
+  -_fernet(): Fernet
+}
+database "app_config\napp_config_history\napp_secrets" as cfgdb
+config_store --> cfgdb
+config_store ..> ProfileSection : validates
+config_store ..> "config/user_profile.yml + .env" : fallback
+
+class llm <<module>> {
+  +get_chat_model(cfg): BaseChatModel
+  +get_embeddings(cfg): Embeddings
+  +structured_output_method()
+}
+llm ..> ModelConfig
+llm ..> EmbeddingsConfig
+
+class prompts <<module>> {
+  +get_prompt(name): PromptSpec
+  +push(name), pull(name), history(name)
+  +record_version(name, text, msg)
+}
+class PromptSpec {
+  name
+  text
+  config
+  +compile(**vars)
+}
+prompts ..> PromptSpec
+
+class tracing <<module>> {
+  +callbacks(trace_id)
+  +score(trace_id, name, value)
+  +stage_run(stage)
+  +log_results(rows, metrics)
+}
+
+package "api (FastAPI)" {
+  class create_app <<function>>
+  class routers {
+    health, config, options, notifications,
+    gmail, models, setup, runs, guides,
+    feedback, memory, visualizations
+  }
+  class memory_router <<module api.routers.memory>> {
+    GET /memory/procedures
+    GET /memory/procedures/{name}/history
+    GET /memory/{semantic|episodic}?q=&limit&offset
+    DELETE /memory/{kind}/{key}
+  }
+  create_app *-- routers
+  routers *-- memory_router
+}
+memory_router ..> "memory.store / episodic / procedural"
+memory_router ..> prompts : history(procedural/<user>/<name>)
+
+package "ui (React)" as uipkg {
+  class MemoryPage {
+    tabs: facts | examples | rules
+  }
+  class MemoryBrowser {
+    FactsTab
+    ExamplesTab
+    search
+    forget
+  }
+  class ConfigHistory {
+    versions
+    changedFields()
+    Load into form
+  }
+  class SectionEditor {
+    dirty tracking
+    secrets clear
+  }
+  class unsaved <<module>> {
+    +setDirty()
+    +confirmLeave()
+    +stableJson()
+  }
+  class diff <<module>> {
+    +changedFields()
+    +wordDiff()
+  }
+  MemoryPage *-- MemoryBrowser
+  SectionEditor *-- ConfigHistory
+  SectionEditor ..> unsaved
+  ConfigHistory ..> diff
+  MemoryPage ..> diff : DiffText
+}
+routers ..> config_store
+create_app ..> "Watcher / Listener" : start on lifespan
+MemoryPage ..> memory_router : /api/memory
+ConfigHistory ..> routers : /api/config/{section}/history
+@enduml

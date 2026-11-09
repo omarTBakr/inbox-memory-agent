@@ -1,0 +1,84 @@
+@startuml system_sequence_diagram
+title Inbox Memory Agent - System Sequence Diagram (end to end)
+autonumber
+actor Admin
+actor Owner
+participant "React UI" as UI
+participant "FastAPI" as API
+participant "Watcher" as W
+participant "Gmail API" as G
+participant "Email graph\n(stage 04)" as GR
+participant "LLM" as LLM
+database "Postgres\n(config, store, queues,\nfeedback_items)" as PG
+participant "Telegram" as TG
+participant "Listener" as L
+participant "Langfuse / MLflow" as OBS
+
+== 1. Setup ==
+Admin -> UI : setup wizard (profile, notifications,\nGmail, model, embeddings)
+UI -> API : PUT /config/{section}, /secrets
+API -> PG : versioned app_config + encrypted app_secrets
+Admin -> UI : Connect Google
+UI -> API : OAuth start / callback
+API -> G : exchange code for token
+API -> PG : store token (encrypted)
+API -> W : start() (auto_trigger on)
+API -> L : start()
+
+== 2. New email arrives ==
+W -> G : history since last id (inbox + spam query)
+W -> PG : enqueue -> gmail_messages
+W -> G : fetch message
+W -> GR : invoke(email, config{user_id, trace_id})
+GR -> PG : episodic examples + procedural rules
+GR -> LLM : triage (Router)
+LLM --> GR : ignore | notify | respond
+alt respond (never for Spam)
+  GR -> PG : semantic memory search / manage
+  GR -> LLM : ReAct think / draft / review
+  GR -> GR : write_email (reply)
+end
+GR -> OBS : trace + scores
+GR -> PG : feedback_items row (trajectory)
+alt notify / respond in notify_on
+  GR -> TG : notification + 👍/👎 / labels / Why? / Not spam
+  TG -> Owner : message
+else ignore
+  GR -> PG : wait for daily digest
+end
+W -> PG : mark(done)
+
+== 3. Owner feedback ==
+Owner -> TG : 👍 / 👎 / label / reply text / Not spam
+L -> TG : getUpdates
+alt 👍 or label correction
+  L -> PG : episodic example (embedded email + label)
+else free-text reply
+  L -> LLM : select + optimize procedures
+  L -> PG : new procedural version
+  L -> OBS : prompt version history
+else Not spam
+  L -> G : move to Inbox
+end
+L -> OBS : user_feedback score / MLflow metrics
+L -> TG : toast + refreshed keyboard
+
+== 4. Daily digest ==
+L -> PG : pending ignored items
+L -> TG : digest with per-email buttons
+
+== 5. Owner reviews memory in the UI ==
+Owner -> UI : Memory page (facts / examples / rules)
+UI -> API : GET /memory/semantic?q=..., /memory/episodic, /memory/procedures
+API -> PG : store.search (embedding similarity when q is set)
+API -> OBS : rule history (Langfuse prompt versions)
+Owner -> UI : forget a wrong fact / reset a rule
+UI -> API : DELETE /memory/{kind}/{key}
+API -> PG : store.delete
+
+== 6. Next similar email ==
+W -> GR : invoke(new email)
+GR -> PG : finds the new example / rules
+GR -> LLM : triage with updated memory
+note right of GR : behaviour improves from feedback
+@enduml

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from email_assistant.api.routers import (
-    config, feedback, gmail, guides, health, models, notifications, options, runs, setup, visualizations,
+    config, feedback, gmail, guides, health, memory, models, notifications, options, runs, setup, visualizations,
 )
 from email_assistant.gmail.watcher import watcher
 from email_assistant.notifications.telegram_bot import listener
@@ -33,7 +33,8 @@ def create_app() -> FastAPI:
         watcher.stop()
 
     app = FastAPI(title="Email assistant", lifespan=lifespan)
-    for router in (health, config, options, notifications, gmail, models, setup, runs, guides, feedback, visualizations):
+    for router in (health, config, options, notifications, gmail, models, setup, runs, guides, feedback, memory,
+                   visualizations):
         app.include_router(router.router, prefix="/api")
 
     @app.exception_handler(ValidationError)

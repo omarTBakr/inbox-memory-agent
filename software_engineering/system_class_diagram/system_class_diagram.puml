@@ -1,0 +1,183 @@
+@startuml system_class_diagram
+title Inbox Memory Agent - System Class Diagram (overview)
+skinparam classAttributeIconSize 0
+skinparam packageStyle frame
+hide empty members
+set separator none
+left to right direction
+
+package "Presentation" {
+  class "React UI" as UI <<SPA>> {
+    SetupPage, SettingsPage (+History),
+    FeedbackPage, MemoryPage,
+    VisualizationsPage
+  }
+  class "FastAPI app" as API {
+    +create_app()
+    routers: config, gmail, runs,
+    feedback, memory, notifications,
+    models, setup, visualizations, health
+  }
+  class CLI <<cli.py / Makefile>> {
+    memory, feedback, teach,
+    procedures, digest, graph
+  }
+}
+
+package "Ingestion (gmail)" {
+  class Watcher {
+    +start() +stop() +check_now()
+    +status()
+  }
+  class GmailClient <<module client>> {
+    +start_oauth() +finish_oauth()
+    +get_service()
+  }
+  class GmailMessages <<module messages>> {
+    +fetch() +to_email()
+  }
+  class GmailActions <<module actions>> {
+    +not_spam()
+  }
+}
+
+package "Orchestration" {
+  class Stage {
+    id
+    module
+    uses_store
+    +build_graph()
+  }
+  class StageRunner <<module stage_runner>> {
+    +run(stage_id, samples)
+  }
+  class EmailGraph <<StateGraph>> {
+    triage_router
+    response_agent
+    notify_user
+  }
+  class State <<TypedDict>>
+  class Router <<BaseModel>> {
+    reasoning
+    classification
+  }
+  class ReactAgent <<StateGraph>> {
+    gather_context, think, act,
+    draft_reply, review, escalate, send
+  }
+  class EmailTools <<tools>> {
+    write_email
+    schedule_meeting
+    check_calendar_availability
+  }
+}
+
+package "Long-term memory" {
+  class SemanticMemory <<langmem tools>> {
+    manage_memory
+    search_memory
+  }
+  class EpisodicMemory <<module>> {
+    +record_example() +find_examples()
+  }
+  class ProceduralMemory <<module>> {
+    +load() +save() +optimize()
+  }
+  class PostgresStore <<pgvector>>
+}
+
+package "Notifications & feedback" {
+  class Notification <<BaseModel>> {
+    Responded | Notified | IgnoredDigest
+  }
+  class Push <<module push>> {
+    +push()
+  }
+  class Listener {
+    +start() -_callback() -_comment() -_maybe_digest()
+  }
+  class FeedbackApply <<module apply>> {
+    +thumbs_up() +thumbs_down()
+    +correct_label() +reply_feedback() +not_spam()
+  }
+  class FeedbackStore <<module store>> {
+    feedback_items
+  }
+  class Digest <<module digest>> {
+    +send_digest()
+  }
+}
+
+package "Configuration & cross-cutting" {
+  class Settings <<.env>>
+  class ConfigStore <<module config_store>> {
+    +section() +save() +secret()
+  }
+  class Profile <<BaseModel>> {
+    user
+    triage_rules
+    contacts
+    ...
+  }
+  class LLM <<module llm>> {
+    +get_chat_model() +get_embeddings()
+  }
+  class Prompts <<module prompts>> {
+    +get_prompt() +record_version()
+  }
+  class Tracing <<module tracing>> {
+    +callbacks() +score() +stage_run()
+  }
+}
+
+UI --> API : HTTP /api
+API --> ConfigStore
+API --> Watcher : lifespan start/stop
+API --> Listener : lifespan start/stop
+API --> StageRunner : /runs
+API --> SemanticMemory : /memory browse
+API --> EpisodicMemory : /memory browse
+API --> ProceduralMemory : /memory rules
+CLI --> StageRunner
+CLI --> FeedbackApply
+
+Watcher --> GmailMessages
+Watcher --> StageRunner
+GmailMessages --> GmailClient
+GmailActions --> GmailClient
+
+StageRunner --> Stage
+Stage --> EmailGraph : builds
+EmailGraph --> State
+EmailGraph --> Router
+EmailGraph --> ReactAgent : respond
+ReactAgent --> EmailTools
+ReactAgent --> SemanticMemory
+EmailGraph --> EpisodicMemory : few-shot
+EmailGraph --> ProceduralMemory : rules
+EmailGraph --> Notification : notify_user
+EmailGraph --> Push
+EmailGraph --> FeedbackStore
+
+SemanticMemory --> PostgresStore
+EpisodicMemory --> PostgresStore
+ProceduralMemory --> PostgresStore
+ProceduralMemory --> Prompts : versions
+
+Listener --> FeedbackApply
+Listener --> Digest
+FeedbackApply --> EpisodicMemory
+FeedbackApply --> ProceduralMemory
+FeedbackApply --> GmailActions
+FeedbackApply --> FeedbackStore
+FeedbackApply --> Tracing
+Digest --> FeedbackStore
+Digest --> Notification
+
+EmailGraph ..> LLM
+EmailGraph ..> Prompts
+EmailGraph ..> Tracing
+ConfigStore --> Profile
+ConfigStore ..> Settings
+LLM ..> ConfigStore
+@enduml

@@ -1,0 +1,36 @@
+@startuml uc14_setup_wizard_save
+title UC14 - Setup wizard: save a config section
+autonumber
+actor Admin
+participant "React UI\n(SectionStep / SchemaForm)" as UI
+participant "API /api/config" as API
+participant "config_models" as CM
+participant "config_store" as CS
+database Postgres as PG
+
+UI -> API : GET /schema/{section}
+API -> CM : model_json_schema() + ui hints
+API --> UI : JSON schema (form is generated)
+UI -> API : GET /config/{section}
+API -> CS : raw_section(section)
+CS -> PG : load_saved() else YAML / .env fallback
+API --> UI : values + source
+Admin -> UI : edit fields, Save
+UI -> API : PUT /config/{section} {data}
+API -> CS : save(section, data)
+CS -> CM : SECTIONS[section].model_validate(data)
+alt invalid
+  CM --> API : ValidationError
+  API --> UI : 422 detail
+else valid
+  CS -> PG : SELECT ... FOR UPDATE; upsert app_config(version+1)
+  CS -> PG : insert app_config_history
+  CS -> CS : invalidate() cache
+  API --> UI : {version}
+  opt secret fields filled (tokens, keys)
+    UI -> API : PUT /config/{section}/secrets
+    API -> CS : set_secret(section, name, value)
+    CS -> PG : Fernet-encrypted into app_secrets
+  end
+end
+@enduml

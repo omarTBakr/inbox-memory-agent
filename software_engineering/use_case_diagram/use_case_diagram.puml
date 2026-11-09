@@ -1,0 +1,84 @@
+@startuml use_case_diagram
+title Inbox Memory Agent - Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Mailbox Owner" as Owner
+actor "Admin" as Admin
+actor "Developer" as Dev
+Admin -|> Owner
+
+actor "Gmail API" as Gmail <<system>>
+actor "Telegram" as Telegram <<system>>
+actor "LLM\n(Ollama / API)" as LLM <<system>>
+actor "Langfuse / MLflow" as Obs <<system>>
+
+rectangle "Inbox Memory Agent" {
+  usecase "UC01 Auto-handle new mail" as UC01
+  usecase "UC02 Triage email\n(ignore / notify / respond)" as UC02
+  usecase "UC03 Draft & send reply\n(ReAct agent + tools)" as UC03
+  usecase "UC04 Remember facts\n(semantic memory)" as UC04
+  usecase "UC05 Rate with 👍 / 👎" as UC05
+  usecase "UC06 Correct label\n(episodic memory)" as UC06
+  usecase "UC07 Teach with free text\n(procedural memory)" as UC07
+  usecase "UC08 Not spam" as UC08
+  usecase "UC09 Receive notification" as UC09
+  usecase "UC10 Connect Gmail (OAuth)" as UC10
+  usecase "UC11 Configure models\n& probe" as UC11
+  usecase "UC12 Ignored-email digest" as UC12
+  usecase "UC13 Browse / search / forget\nmemories (Memory page)" as UC13
+  usecase "UC14 Setup wizard\n(versioned config, encrypted secrets)" as UC14
+  usecase "UC15 Run stages & view\ntraces / KPIs" as UC15
+  usecase "UC16 Control watcher" as UC16
+  usecase "UC17 Rule version history\n& reset to profile" as UC17
+  usecase "UC18 Settings version history\n& load old version" as UC18
+  usecase "UC19 Unsaved-changes warning" as UC19
+  usecase "Record feedback\n(score + feedback_items)" as RF
+}
+
+Owner --> UC05
+Owner --> UC06
+Owner --> UC07
+Owner --> UC08
+Owner --> UC09
+Owner --> UC12
+Owner --> UC13
+Owner --> UC01
+Owner --> UC17
+
+Admin --> UC10
+Admin --> UC11
+Admin --> UC14
+Admin --> UC16
+Admin --> UC18
+
+Dev --> UC15
+
+UC01 ..> UC02 : <<include>>
+UC03 ..> UC02 : <<extend>>\n[respond]
+UC03 ..> UC04 : <<include>>
+UC02 ..> UC09 : <<include>>
+UC05 ..> RF : <<include>>
+UC06 ..> RF : <<include>>
+UC07 ..> RF : <<include>>
+UC08 ..> UC06 : <<include>>
+UC14 ..> UC10 : <<include>>
+UC14 ..> UC11 : <<include>>
+UC14 ..> UC19 : <<include>>
+UC18 ..> UC19 : <<include>>
+UC17 ..> UC07 : <<extend>>
+UC13 --> LLM : embeddings\n(search)
+UC17 --> Obs : versions
+
+UC01 --> Gmail
+UC08 --> Gmail
+UC10 --> Gmail
+UC02 --> LLM
+UC03 --> LLM
+UC07 --> LLM
+UC09 --> Telegram
+UC12 --> Telegram
+UC05 --> Telegram
+UC15 --> Obs
+@enduml

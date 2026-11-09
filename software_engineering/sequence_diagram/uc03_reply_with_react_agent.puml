@@ -1,0 +1,49 @@
+@startuml uc03_reply_with_react_agent
+title UC03 - Draft and send a reply (ReAct response agent)
+autonumber
+participant "triage_router" as TR
+participant "gather_context" as GC
+participant "think" as TH
+participant "act" as AC
+participant "draft_reply" as DR
+participant "review" as RV
+participant "escalate" as ES
+participant "send" as SE
+participant "LLM" as LLM
+participant "Tools\n(calendar, schedule,\nsemantic memory)" as T
+database "Store (semantic)" as ST
+
+TR -> GC : respond request
+GC -> ST : search_memory (facts about sender/project)
+GC -> TH : context
+loop until decision != use_tool
+  TH -> LLM : Thought(known, missing, reason, next, tool, tool_input)
+  LLM --> TH : decision
+  alt next == use_tool
+    TH -> AC
+    AC -> T : tool.invoke(tool_input)
+    T --> AC : observation
+    AC -> TH : Step appended to scratchpad
+  end
+end
+alt next == draft
+  TH -> DR
+  DR -> LLM : Draft(to, subject, body, facts, commitments)
+  DR -> RV
+  RV -> RV : check_draft() (placeholders, times,\nrecipients, internal notes)
+  RV -> LLM : Review(ok, issues)
+  alt no issues
+    RV -> SE
+  else issues and revisions <= max
+    RV -> TH : revise
+  else too many revisions
+    RV -> ES
+  end
+else next == escalate
+  TH -> ES
+end
+ES -> LLM : HoldingReply
+ES -> SE
+SE -> T : write_email(to, subject, content)
+SE --> TR : messages (AIMessage + ToolMessage)
+@enduml

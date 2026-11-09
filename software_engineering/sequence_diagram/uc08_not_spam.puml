@@ -1,0 +1,33 @@
+@startuml uc08_not_spam
+title UC08 - "Not spam" on an email from Spam
+autonumber
+actor Owner
+participant Telegram as TG
+participant Listener as L
+participant "feedback.apply" as A
+participant "gmail.actions" as GA
+participant "Gmail API" as G
+participant "feedback.store" as FS
+
+Owner -> TG : press 📥 Not spam
+L -> TG : getUpdates()
+TG --> L : callback "fb:<id>:not_spam"
+L -> A : not_spam(item_id)
+A -> FS : get(item_id)
+alt email.folder != spam
+  A --> L : ValueError -> "Could not move it"
+else in spam
+  opt not moved_to_inbox
+    A -> GA : not_spam(email_ref)
+    GA -> G : messages.modify(remove SPAM, add INBOX)
+    A -> FS : update(moved_to_inbox=true)
+  end
+  alt classification == ignore
+    A -> A : correct_label(item_id, "notify")
+  else
+    A -> A : thumbs_up(item_id)
+  end
+  A --> L : "Moved to Inbox. ..."
+end
+L -> TG : answerCallbackQuery + refresh keyboard
+@enduml

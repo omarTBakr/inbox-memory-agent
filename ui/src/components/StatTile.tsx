@@ -1,7 +1,7 @@
 // KPI stat tile: value + caption + optional sparkline (single series, 2px line, hover tooltip).
 // Text uses text tokens; only the line carries color.
 
-import { Box, Paper, Stack, Text, UnstyledButton, useComputedColorScheme } from "@mantine/core";
+import { Box, Paper, Skeleton, Stack, Text, UnstyledButton, VisuallyHidden, useComputedColorScheme } from "@mantine/core";
 import { useState, type ReactNode } from "react";
 
 export type Point = { day: string; value: number | null };
@@ -21,9 +21,13 @@ function Sparkline({ series, format }: { series: Point[]; format: (v: number) =>
   const y = (v: number) => (max === min ? h / 2 : h - pad - ((v - min) * (h - 2 * pad)) / (max - min));
   const path = points.map((v, i) => (v === null ? null : `${x(i)},${y(v)}`)).filter(Boolean).join(" L ");
   const active = hover !== null && points[hover] !== null ? hover : null;
+  const last = [...series].reverse().find((p) => p.value !== null)!;
   return (
     <Box pos="relative">
-      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} role="img" aria-label="Daily trend"
+      <VisuallyHidden>
+        Daily trend: lowest {format(min)}, highest {format(max)}, latest {format(last.value!)} on {last.day}.
+      </VisuallyHidden>
+      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} aria-hidden="true"
            onMouseLeave={() => setHover(null)}
            onMouseMove={(e) => {
              const rect = e.currentTarget.getBoundingClientRect();
@@ -51,19 +55,34 @@ type Props = {
   series?: Point[];
   format?: (v: number) => string;
   onClick?: () => void;
+  // what clicking the tile does, e.g. "Opens Traces"
+  hint?: string;
+  loading?: boolean;
   children?: ReactNode;
 };
 
-export function StatTile({ label, value, caption, series, format = String, onClick, children }: Props) {
+export function StatTile({ label, value, caption, series, format = String, onClick, hint, loading, children }: Props) {
   return (
-    <UnstyledButton onClick={onClick} style={{ display: "block", height: "100%" }}>
+    <UnstyledButton onClick={onClick} title={hint} aria-label={hint ? `${label}: ${hint}` : undefined}
+                    style={{ display: "block", height: "100%" }}>
       <Paper withBorder p="sm" radius="md" h="100%">
         <Stack gap={4}>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{label}</Text>
-          <Text fz={26} fw={700} lh={1.1}>{value}</Text>
-          {caption && <Text size="xs" c="dimmed">{caption}</Text>}
-          {series && <Sparkline series={series} format={format} />}
-          {children}
+          {loading ? (
+            <>
+              <Skeleton h={28} w="60%" />
+              <Skeleton h={10} w="80%" />
+              <Skeleton h={32} />
+            </>
+          ) : (
+            <>
+              <Text fz={26} fw={700} lh={1.1}>{value}</Text>
+              {caption && <Text size="xs" c="dimmed">{caption}</Text>}
+              {series && <Sparkline series={series} format={format} />}
+              {children}
+              {hint && <Text size="xs" c="dimmed">{hint} ↓</Text>}
+            </>
+          )}
         </Stack>
       </Paper>
     </UnstyledButton>
